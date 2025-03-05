@@ -324,8 +324,7 @@ func (c *ElectrumClient) FilterBlocks(req *FilterBlocksRequest) (*FilterBlocksRe
 // NotifyReceived implements the chain.Interface NotifyReceived method.
 // Typically used for receiving updates when addresses receive new transactions.
 func (c *ElectrumClient) NotifyReceived(addrs []chainutil.Address) error {
-	// If needed, subscribe to address-based notifications from electrum (Electrum protocol).
-	// For demonstration, we just do a no-op or store them in local memory.
+	// If needed, subscribe to address-based notifications from electrum.
 	return nil
 }
 

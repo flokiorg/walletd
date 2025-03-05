@@ -112,6 +112,17 @@ func (ws *WalletService) watch() {
 	txtNotif := ws.NtfnServer.TransactionNotifications()
 	spentNessNotif := ws.NtfnServer.AccountSpentnessNotifications(ws.account.AccountNumber)
 
+	accResult, err := ws.Wallet.Accounts(ws.params.AddressScope)
+	if err == nil {
+		ws.txNotif <- &wallet.TransactionNotifications{
+			AttachedBlocks: []wallet.Block{
+				{
+					Hash:   accResult.CurrentBlockHash,
+					Height: accResult.CurrentBlockHeight,
+				},
+			},
+		}
+	}
 	time.AfterFunc(time.Second*5, func() {
 		ws.accountNotif <- &wallet.AccountNotification{
 			AccountNumber: ws.account.AccountNumber,

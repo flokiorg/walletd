@@ -7,7 +7,6 @@ package wallet
 
 import (
 	"bytes"
-	"fmt"
 	"time"
 
 	"github.com/flokiorg/go-flokicoin/chaincfg/chainhash"
@@ -127,7 +126,6 @@ func (w *Wallet) handleChainNotifications() {
 		case n, ok := <-chainClient.Notifications():
 
 			if !ok {
-				fmt.Printf("notifications closed")
 				return
 			}
 
