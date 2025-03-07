@@ -135,9 +135,17 @@ func (ws *WalletService) watch() {
 		for {
 			select {
 
-			case <-time.After(time.Second * 10):
-				ws.accountNotif <- &wallet.AccountNotification{
-					AccountNumber: ws.account.AccountNumber,
+			case <-time.After(time.Second * 5):
+				accResult, err := ws.Wallet.Accounts(ws.params.AddressScope)
+				if err == nil {
+					ws.txNotif <- &wallet.TransactionNotifications{
+						AttachedBlocks: []wallet.Block{
+							{
+								Hash:   accResult.CurrentBlockHash,
+								Height: accResult.CurrentBlockHeight,
+							},
+						},
+					}
 				}
 
 			case n := <-accountNotif.C:

@@ -100,9 +100,8 @@ func (c *ElectrumClient) Start() error {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
 	headerSubscription, err := c.electrum.SubscribeHeaders(ctx)
+	cancel()
 	if err != nil {
 		return fmt.Errorf("failed to subscribe: %v", err)
 	}
@@ -648,9 +647,8 @@ func (c *ElectrumClient) fetchHistory(parent context.Context, addr chainutil.Add
 	}
 
 	ctx, cancel := context.WithTimeout(parent, defaultFetchHistoryTimeout)
-	defer cancel()
-
 	history, err := c.electrum.GetHistory(ctx, hex.EncodeToString(scriptHashBytes))
+	cancel()
 	if err != nil {
 		return nil, fmt.Errorf("electrum service failed loading history for scripthash=%x", scriptHashBytes)
 	}
@@ -669,10 +667,10 @@ func (c *ElectrumClient) fetchHistory(parent context.Context, addr chainutil.Add
 		}
 
 		ctx, cancel := context.WithTimeout(parent, defaultFetchHistoryTimeout)
-		defer cancel()
 		txRaw, err := c.electrum.GetRawTransaction(ctx, txHistory.Hash)
+		cancel()
 		if err != nil {
-			return nil, fmt.Errorf("electrum service failed fetching tx=%s", txHistory.Hash)
+			return nil, fmt.Errorf("failed to fetch tx=%s", txHistory.Hash)
 		}
 		txHex, err := hex.DecodeString(txRaw)
 		if err != nil {
