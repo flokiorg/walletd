@@ -99,9 +99,7 @@ func (c *ElectrumClient) Start() error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	headerSubscription, err := c.electrum.SubscribeHeaders(ctx)
-	cancel()
+	headerSubscription, err := c.electrum.SubscribeHeaders(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to subscribe: %v", err)
 	}
@@ -164,7 +162,7 @@ func (c *ElectrumClient) GetBestBlock() (*chainhash.Hash, int32, error) {
 	if c.electrum.IsShutdown() {
 		return nil, 0, errors.New("electrum not connected")
 	}
-	blockhash, height, err := c.electrum.GetBestBlock(context.TODO())
+	blockhash, height, err := c.electrum.GetBestBlock(context.Background())
 	if err != nil {
 		return nil, -1, err
 	}
@@ -217,7 +215,7 @@ func (c *ElectrumClient) GetBlockHash(height int64) (*chainhash.Hash, error) {
 	}
 
 	// Fetch the block hash from the Electrum server
-	hash, header, err := c.electrum.GetBlockHash(context.TODO(), uint32(height))
+	hash, header, err := c.electrum.GetBlockHash(context.Background(), uint32(height))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch block for height %d: %v", height, err)
 	}
@@ -250,7 +248,7 @@ func (c *ElectrumClient) GetBlockHeader(hash *chainhash.Hash) (*wire.BlockHeader
 	}
 
 	// Fetch the block hash from the Electrum server
-	hash, header, err := c.electrum.GetBlockHash(context.TODO(), uint32(height))
+	hash, header, err := c.electrum.GetBlockHash(context.Background(), uint32(height))
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch block for height %d: %v", height, err)
 	}
@@ -291,7 +289,7 @@ func (c *ElectrumClient) SendRawTransaction(tx *wire.MsgTx, allowHighFees bool) 
 		return nil, fmt.Errorf("failed to serialize tx: %w", err)
 	}
 
-	strBlockhash, err := c.electrum.BroadcastTransaction(context.TODO(), hex.EncodeToString(buf.Bytes()))
+	strBlockhash, err := c.electrum.BroadcastTransaction(context.Background(), hex.EncodeToString(buf.Bytes()))
 	if err != nil {
 		return nil, err
 	}
@@ -360,6 +358,22 @@ func (c *ElectrumClient) onBlockConnected(hash *chainhash.Hash, height int32,
 			Height: height,
 		},
 		Time: timestamp,
+	}:
+	case <-c.quit:
+	}
+}
+
+// onRescanFinished is a callback that's executed whenever a rescan has
+// finished. This will queue a RescanFinished notification to the caller with
+// the details of the last block in the range of the rescan.
+func (c *ElectrumClient) onRescanFinished(hash *chainhash.Hash, height int32,
+	timestamp time.Time) {
+
+	select {
+	case c.notificationQueue.ChanIn() <- &RescanFinished{
+		Hash:   hash,
+		Height: height,
+		Time:   timestamp,
 	}:
 	case <-c.quit:
 	}
@@ -436,7 +450,6 @@ loop:
 		case blockEvent := <-c.headerSubscription:
 			blockHex, err := hex.DecodeString(blockEvent.Hex)
 			if err != nil {
-				// glog.Printf("warn: invalid block: %v", err)
 				continue loop
 			}
 			block := &wire.MsgBlock{}
@@ -456,7 +469,6 @@ loop:
 			needReorg := block.Header.PrevBlock != bestBlock.Hash
 
 			if err := c.rescan(bestBlock.Hash, bestBlock.Height, needReorg); err != nil {
-				// glog.Printf("rescan failed: %v", err)
 				continue loop
 			}
 
@@ -469,8 +481,8 @@ loop:
 			c.bestBlockMu.Lock()
 			c.bestBlock = bestBlock
 			c.bestBlockMu.Unlock()
-			c.onBlockConnected(&blockhash, blockEvent.Height, block.Header.Timestamp)
-
+			// c.onBlockConnected(&blockhash, blockEvent.Height, block.Header.Timestamp)
+			c.onRescanFinished(&blockhash, blockEvent.Height, block.Header.Timestamp)
 		case <-c.quit:
 			return
 		}
@@ -639,16 +651,12 @@ type historyRecord struct {
 
 func (c *ElectrumClient) fetchHistory(parent context.Context, addr chainutil.Address, startHeight int32, needReorg bool) ([]*historyRecord, error) {
 
-	defaultFetchHistoryTimeout := time.Second * 15
-
 	scriptHashBytes, err := txscript.AddrToScripthash(addr)
 	if err != nil {
 		return nil, fmt.Errorf("address invalid: %v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(parent, defaultFetchHistoryTimeout)
-	history, err := c.electrum.GetHistory(ctx, hex.EncodeToString(scriptHashBytes))
-	cancel()
+	history, err := c.electrum.GetHistory(context.Background(), hex.EncodeToString(scriptHashBytes))
 	if err != nil {
 		return nil, fmt.Errorf("electrum service failed loading history for scripthash=%x", scriptHashBytes)
 	}
@@ -658,7 +666,7 @@ func (c *ElectrumClient) fetchHistory(parent context.Context, addr chainutil.Add
 	for _, txHistory := range history {
 
 		if !needReorg && txHistory.Height <= startHeight {
-			continue /// skip deep into old history
+			continue /// skip processing old blocks
 		}
 
 		blockhash, err := c.GetBlockHash(int64(txHistory.Height))
@@ -666,9 +674,7 @@ func (c *ElectrumClient) fetchHistory(parent context.Context, addr chainutil.Add
 			return nil, fmt.Errorf("failed to fetch block height=%d: %v", txHistory.Height, err)
 		}
 
-		ctx, cancel := context.WithTimeout(parent, defaultFetchHistoryTimeout)
-		txRaw, err := c.electrum.GetRawTransaction(ctx, txHistory.Hash)
-		cancel()
+		txRaw, err := c.electrum.GetRawTransaction(parent, txHistory.Hash)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch tx=%s", txHistory.Hash)
 		}
@@ -702,7 +708,7 @@ func (c *ElectrumClient) fetchHistory(parent context.Context, addr chainutil.Add
 // rescan performs a wallet recovering
 func (c *ElectrumClient) Recover(account *waddrmgr.AccountProperties, recoveryWindow uint32) (uint32, uint32, error) {
 
-	ctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	var recoverCounter uint32

@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/flokiorg/go-flokicoin/chaincfg/chainhash"
 	"github.com/flokiorg/go-flokicoin/chainutil"
 	"github.com/flokiorg/walletd/chain"
 	"github.com/flokiorg/walletd/chain/electrum"
@@ -96,6 +97,7 @@ func (ws *WalletService) synchronize(watch bool) (err error) {
 	atomic.StoreInt32(ws.synced, 1)
 	if watch {
 		ws.watch()
+		ws.healthCheck()
 	}
 
 	ws.SynchronizeRPC(chainClient)
@@ -105,29 +107,30 @@ func (ws *WalletService) synchronize(watch bool) (err error) {
 	return nil
 }
 
+func (ws *WalletService) healthCheck() {
+	ws.wg.Add(1)
+
+	go func() {
+		defer ws.wg.Done()
+		for {
+			select {
+			case err := <-ws.electrumHealth:
+				ws.healthNotif <- err
+
+			case <-ws.stop:
+				return
+			}
+		}
+	}()
+
+}
+
 func (ws *WalletService) watch() {
 	ws.wg.Add(1)
 
 	accountNotif := ws.NtfnServer.AccountNotifications()
 	txtNotif := ws.NtfnServer.TransactionNotifications()
 	spentNessNotif := ws.NtfnServer.AccountSpentnessNotifications(ws.account.AccountNumber)
-
-	accResult, err := ws.Wallet.Accounts(ws.params.AddressScope)
-	if err == nil {
-		ws.txNotif <- &wallet.TransactionNotifications{
-			AttachedBlocks: []wallet.Block{
-				{
-					Hash:   accResult.CurrentBlockHash,
-					Height: accResult.CurrentBlockHeight,
-				},
-			},
-		}
-	}
-	time.AfterFunc(time.Second*5, func() {
-		ws.accountNotif <- &wallet.AccountNotification{
-			AccountNumber: ws.account.AccountNumber,
-		}
-	})
 
 	go func() {
 		defer ws.wg.Done()
@@ -136,16 +139,8 @@ func (ws *WalletService) watch() {
 			select {
 
 			case <-time.After(time.Second * 5):
-				accResult, err := ws.Wallet.Accounts(ws.params.AddressScope)
-				if err == nil {
-					ws.txNotif <- &wallet.TransactionNotifications{
-						AttachedBlocks: []wallet.Block{
-							{
-								Hash:   accResult.CurrentBlockHash,
-								Height: accResult.CurrentBlockHeight,
-							},
-						},
-					}
+				ws.accountNotif <- &wallet.AccountNotification{
+					AccountNumber: ws.account.AccountNumber,
 				}
 
 			case n := <-accountNotif.C:
@@ -156,9 +151,6 @@ func (ws *WalletService) watch() {
 
 			case n := <-spentNessNotif.C:
 				ws.spentNessNotif <- n
-
-			case err := <-ws.electrumHealth:
-				ws.healthNotif <- err
 
 			case <-ws.stop:
 				return
@@ -199,6 +191,19 @@ func (ws *WalletService) Balance() float64 {
 		return 0
 	}
 	return balance.Total.ToFLC()
+}
+
+func (ws *WalletService) CurrentBlock() (int32, *chainhash.Hash, error) {
+	if !ws.isOpened {
+		return 0, nil, wallet.ErrNotLoaded
+	}
+
+	ret, err := ws.Wallet.Accounts(ws.params.AddressScope)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return ret.CurrentBlockHeight, ret.CurrentBlockHash, nil
 }
 
 func (ws *WalletService) GetLastAddress() (chainutil.Address, error) {
