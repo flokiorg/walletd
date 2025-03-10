@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/flokiorg/go-flokicoin/chaincfg/chainhash"
 	"github.com/flokiorg/go-flokicoin/chainutil"
 	"github.com/flokiorg/walletd/chain"
 	"github.com/flokiorg/walletd/chain/electrum"
@@ -54,18 +53,18 @@ func (ws *WalletService) IsSynced() bool {
 	return atomic.LoadInt32(ws.synced) == 1
 }
 
-func (ws *WalletService) Synchronize() (err error) {
+func (ws *WalletService) Synchronize() (*waddrmgr.BlockStamp, error) {
 	return ws.synchronize(true)
 }
 
-func (ws *WalletService) synchronize(watch bool) (err error) {
+func (ws *WalletService) synchronize(watch bool) (bestBlock *waddrmgr.BlockStamp, err error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	client := electrum.NewClient(ws.params.ElectrumServer, nil)
 	if err = client.Start(ctx); err != nil {
-		return err
+		return
 	}
 
 	defer func() {
@@ -76,7 +75,7 @@ func (ws *WalletService) synchronize(watch bool) (err error) {
 
 	chainClient := chain.NewElectrumClient(ws.params.Network, client)
 	if err = chainClient.Start(); err != nil {
-		return err
+		return
 	}
 
 	ws.stopService()
@@ -103,7 +102,8 @@ func (ws *WalletService) synchronize(watch bool) (err error) {
 	// ws.SetChainSynced(true)
 	ws.electrumClient = client
 
-	return nil
+	bestBlock, err = ws.CurrentBestBlock()
+	return
 }
 
 func (ws *WalletService) healthCheck() {
@@ -192,17 +192,37 @@ func (ws *WalletService) Balance() float64 {
 	return balance.Total.ToFLC()
 }
 
-func (ws *WalletService) CurrentBlock() (int32, *chainhash.Hash, error) {
+func (ws *WalletService) CurrentWalletBlock() (*waddrmgr.BlockStamp, error) {
 	if !ws.isOpened {
-		return 0, nil, wallet.ErrNotLoaded
+		return nil, wallet.ErrNotLoaded
 	}
 
 	ret, err := ws.Wallet.Accounts(ws.params.AddressScope)
 	if err != nil {
-		return 0, nil, err
+		return nil, err
+	}
+	return &waddrmgr.BlockStamp{
+		Height: ret.CurrentBlockHeight,
+		Hash:   *ret.CurrentBlockHash,
+	}, nil
+}
+
+func (ws *WalletService) CurrentBestBlock() (*waddrmgr.BlockStamp, error) {
+	if atomic.LoadInt32(ws.synced) == 0 {
+		return nil, electrum.ErrServerShutdown
 	}
 
-	return ret.CurrentBlockHeight, ret.CurrentBlockHash, nil
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	block, height, err := ws.electrumClient.GetBestBlock(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &waddrmgr.BlockStamp{
+		Height: height,
+		Hash:   *block,
+	}, nil
 }
 
 func (ws *WalletService) GetLastAddress() (chainutil.Address, error) {
@@ -320,19 +340,20 @@ func (ws *WalletService) RestoreByMnemonic(input []string, name, passphrase stri
 	return
 }
 
-func (ws *WalletService) Recover(counter chan<- uint32) error {
+func (ws *WalletService) Recover(counter chan<- uint32) (*waddrmgr.BlockStamp, error) {
 
 	if !ws.isOpened {
-		return wallet.ErrNotLoaded
+		return nil, wallet.ErrNotLoaded
 	}
 
-	if err := ws.synchronize(false); err != nil {
-		return err
+	bestBlock, err := ws.synchronize(false)
+	if err != nil {
+		return nil, err
 	}
 
 	electrumClient, ok := ws.Wallet.ChainClient().(*chain.ElectrumClient)
 	if !ok {
-		return fmt.Errorf("recovering not supported !") // skip recovering
+		return nil, fmt.Errorf("recovering not supported !") // skip recovering
 	}
 
 	quit := make(chan struct{})
@@ -360,24 +381,24 @@ func (ws *WalletService) Recover(counter chan<- uint32) error {
 
 	externalAddrCount, internalAddrCount, err := electrumClient.Recover(ws.account, recoveryWindow)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if externalAddrCount > 0 {
 		_, err = ws.NewAddressRPCLess(ws.account.AccountNumber, ws.account.KeyScope, externalAddrCount)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if internalAddrCount > 0 {
 		_, err = ws.NewChangeAddressRPCLess(ws.account.AccountNumber, ws.account.KeyScope, internalAddrCount)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return bestBlock, nil
 }
 
 func (ws *WalletService) backupData(seed []byte) (hexData string, words []string, err error) {
