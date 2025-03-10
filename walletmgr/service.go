@@ -80,7 +80,6 @@ func (ws *WalletService) synchronize(watch bool) (err error) {
 	}
 
 	ws.stopService()
-
 	if ws.IsOpened() {
 		ws.CloseWallet()
 	}

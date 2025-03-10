@@ -99,6 +99,12 @@ func (c *ElectrumClient) Start() error {
 		return nil
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := c.electrum.Ping(ctx); err != nil {
+		return fmt.Errorf("failed to ping: %v", err)
+	}
+
 	headerSubscription, err := c.electrum.SubscribeHeaders(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to subscribe: %v", err)
@@ -481,7 +487,7 @@ loop:
 			c.bestBlockMu.Lock()
 			c.bestBlock = bestBlock
 			c.bestBlockMu.Unlock()
-			// c.onBlockConnected(&blockhash, blockEvent.Height, block.Header.Timestamp)
+			c.onBlockConnected(&blockhash, blockEvent.Height, block.Header.Timestamp)
 			c.onRescanFinished(&blockhash, blockEvent.Height, block.Header.Timestamp)
 		case <-c.quit:
 			return
