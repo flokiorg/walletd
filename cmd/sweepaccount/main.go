@@ -44,6 +44,7 @@ func errContext(err error, context string) error {
 var opts = struct {
 	TestNet3              bool                `long:"testnet" description:"Use the test flokicoin network (version 3)"`
 	SimNet                bool                `long:"simnet" description:"Use the simulation flokicoin network"`
+	RegressionNet         bool                `long:"regtest" description:"Use the regression flokicoin network"`
 	RPCConnect            string              `short:"c" long:"connect" description:"Hostname[:port] of wallet RPC server"`
 	RPCUsername           string              `short:"u" long:"rpcuser" description:"Wallet RPC username"`
 	RPCCertificateFile    string              `long:"cafile" description:"Wallet RPC TLS certificate"`
@@ -54,6 +55,7 @@ var opts = struct {
 }{
 	TestNet3:              false,
 	SimNet:                false,
+	RegressionNet:         false,
 	RPCConnect:            "localhost",
 	RPCUsername:           "",
 	RPCCertificateFile:    filepath.Join(walletDataDirectory, "rpc.cert"),
@@ -80,7 +82,17 @@ func init() {
 		os.Exit(1)
 	}
 
-	if opts.TestNet3 && opts.SimNet {
+	numNets := 0
+	if opts.TestNet3 {
+		numNets++
+	}
+	if opts.SimNet {
+		numNets++
+	}
+	if opts.RegressionNet {
+		numNets++
+	}
+	if numNets > 1 {
 		fatalf("Multiple flokicoin networks may not be used simultaneously")
 	}
 	var activeNet = &netparams.MainNetParams
@@ -88,6 +100,8 @@ func init() {
 		activeNet = &netparams.TestNet3Params
 	} else if opts.SimNet {
 		activeNet = &netparams.SimNetParams
+	} else if opts.RegressionNet {
+		activeNet = &netparams.RegressionNetParams
 	}
 
 	if opts.RPCConnect == "" {

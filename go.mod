@@ -12,7 +12,7 @@ require (
 	github.com/lightninglabs/gozmq v0.0.0-20191113021534-d20a764486bf
 	github.com/lightningnetwork/lnd/clock v1.1.1
 	github.com/lightningnetwork/lnd/ticker v1.1.1
-	github.com/lightningnetwork/lnd/tlv v1.3.0
+	github.com/lightningnetwork/lnd/tlv v1.3.1
 	github.com/stretchr/testify v1.10.0
 	go.etcd.io/bbolt v1.4.0
 	golang.org/x/net v0.37.0
@@ -36,12 +36,12 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/text v0.23.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250227231956-55c901821b1e // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
-	github.com/btcsuite/btcd v0.24.2 // indirect
+	github.com/btcsuite/btcd v0.24.3-0.20250318170759-4f4ea81776d6 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0
 	golang.org/x/crypto v0.36.0

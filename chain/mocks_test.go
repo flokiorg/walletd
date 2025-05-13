@@ -175,7 +175,7 @@ func (m *mockRPCClient) GetRawMempoolAsync() rpcclient.
 }
 
 func (m *mockRPCClient) GetRawTransactionAsync(
-	txHash *chainhash.Hash, blkHash *chainhash.Hash) rpcclient.FutureGetRawTransactionResult {
+	txHash *chainhash.Hash) rpcclient.FutureGetRawTransactionResult {
 
 	args := m.Called(txHash)
 

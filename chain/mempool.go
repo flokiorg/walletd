@@ -563,7 +563,7 @@ func (m *mempool) batchGetRawTxes(txids []*chainhash.Hash,
 		}
 
 		// Create the async request and save it to txRespReceivers.
-		resp := m.cfg.client.GetRawTransactionAsync(txHash, nil)
+		resp := m.cfg.client.GetRawTransactionAsync(txHash)
 		respReceivers[*txHash] = resp
 
 		// When getRawTxBatchSize is reached, we'd ask the batch client

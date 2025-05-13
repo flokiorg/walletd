@@ -94,15 +94,16 @@ type config struct {
 	//
 	// Usernames can also be used for the consensus RPC client, so they
 	// aren't considered legacy.
-	RPCCert                *cfgutil.ExplicitString `long:"rpccert" description:"File containing the certificate file"`
-	RPCKey                 *cfgutil.ExplicitString `long:"rpckey" description:"File containing the certificate key"`
-	OneTimeTLSKey          bool                    `long:"onetimetlskey" description:"Generate a new TLS certpair at startup, but only write the certificate to disk"`
-	DisableServerTLS       bool                    `long:"noservertls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
-	LegacyRPCListeners     []string                `long:"rpclisten" description:"Listen for legacy RPC connections on this interface/port (default port: 8332, testnet: 18332, simnet: 18554)"`
-	LegacyRPCMaxClients    int64                   `long:"rpcmaxclients" description:"Max number of legacy RPC clients for standard connections"`
-	LegacyRPCMaxWebsockets int64                   `long:"rpcmaxwebsockets" description:"Max number of legacy RPC websocket connections"`
-	Username               string                  `short:"u" long:"username" description:"Username for legacy RPC and flokicoind authentication (if flokicoindusername is unset)"`
-	Password               string                  `short:"P" long:"password" default-mask:"-" description:"Password for legacy RPC and flokicoind authentication (if flokicoindpassword is unset)"`
+	RPCCert            *cfgutil.ExplicitString `long:"rpccert" description:"File containing the certificate file"`
+	RPCKey             *cfgutil.ExplicitString `long:"rpckey" description:"File containing the certificate key"`
+	OneTimeTLSKey      bool                    `long:"onetimetlskey" description:"Generate a new TLS certpair at startup, but only write the certificate to disk"`
+	DisableServerTLS   bool                    `long:"noservertls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
+	LegacyRPCListeners []string                `long:"rpclisten" description:"Listen for legacy RPC connections on this interface/port (default port: 8332, testnet: 18332, simnet: 18554, regtest: 18332)"`
+
+	LegacyRPCMaxClients    int64  `long:"rpcmaxclients" description:"Max number of legacy RPC clients for standard connections"`
+	LegacyRPCMaxWebsockets int64  `long:"rpcmaxwebsockets" description:"Max number of legacy RPC websocket connections"`
+	Username               string `short:"u" long:"username" description:"Username for legacy RPC and flokicoind authentication (if flokicoindusername is unset)"`
+	Password               string `short:"P" long:"password" default-mask:"-" description:"Password for legacy RPC and flokicoind authentication (if flokicoindpassword is unset)"`
 
 	// EXPERIMENTAL RPC server options
 	//
@@ -415,9 +416,13 @@ func loadConfig() (*config, []string, error) {
 		)
 		activeNet.Params = &chainParams
 	}
+	if cfg.RegressionTest {
+		activeNet = &netparams.RegressionNetParams
+		numNets++
+	}
 	if numNets > 1 {
-		str := "%s: The testnet, signet and simnet params can't be " +
-			"used together -- choose one"
+		str := "%s: The testnet, signet, simnet, and regtest params " +
+			"can't be used together -- choose one"
 		err := fmt.Errorf(str, "loadConfig")
 		fmt.Fprintln(os.Stderr, err)
 		parser.WriteHelp(os.Stderr)
@@ -456,7 +461,7 @@ func loadConfig() (*config, []string, error) {
 	}
 
 	// Exit if you try to use a simulation wallet on anything other than
-	// simnet or testnet3.
+	// simnet.
 	if !cfg.SimNet && cfg.CreateTemp {
 		fmt.Fprintln(os.Stderr, "Tried to create a temporary simulation "+
 			"wallet for network other than simnet!")

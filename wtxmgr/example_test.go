@@ -45,12 +45,12 @@ var exampleBlock100 = makeBlockMeta(100)
 // This example demonstrates reporting the Store balance given an unmined and
 // mined transaction given 0, 1, and 6 block confirmations.
 func ExampleStore_Balance() {
-	s, db, teardown, err := testStore()
-	defer teardown()
+	s, db, cleanup, err := exampleStore()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer cleanup()
 
 	// Prints balances for 0 block confirmations, 1 confirmation, and 6
 	// confirmations.
@@ -116,12 +116,12 @@ func ExampleStore_Balance() {
 }
 
 func ExampleStore_Rollback() {
-	s, db, teardown, err := testStore()
-	defer teardown()
+	s, db, cleanup, err := exampleStore()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer cleanup()
 
 	err = walletdb.Update(db, func(tx walletdb.ReadWriteTx) error {
 		ns := tx.ReadWriteBucket(namespaceKey)
@@ -160,12 +160,12 @@ func ExampleStore_Rollback() {
 
 func Example_basicUsage() {
 	// Open the database.
-	db, dbTeardown, err := testDB()
-	defer dbTeardown()
+	db, cleanup, err := exampleDB()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer cleanup()
 
 	// Open a read-write transaction to operate on the database.
 	dbtx, err := db.BeginReadWriteTx()

@@ -145,7 +145,7 @@ type batchClient interface {
 	// GetRawTransactionAsync returns an instance of a type that can be
 	// used to get the result of the RPC at some future time by invoking
 	// the Receive function on the returned instance.
-	GetRawTransactionAsync(txHash *chainhash.Hash, blkHash *chainhash.Hash) rpcclient.FutureGetRawTransactionResult
+	GetRawTransactionAsync(txHash *chainhash.Hash) rpcclient.FutureGetRawTransactionResult
 
 	// Send marshalls bulk requests and sends to the server creates a
 	// response channel to receive the response

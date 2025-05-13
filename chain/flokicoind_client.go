@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/flokiorg/go-flokicoin/chaincfg/chainhash"
 	"github.com/flokiorg/go-flokicoin/chainjson"
 	"github.com/flokiorg/go-flokicoin/chainutil"
@@ -50,11 +51,6 @@ type FlokicoindClient struct {
 	// bestBlock keeps track of the tip of the current best chain.
 	bestBlockMtx sync.RWMutex
 	bestBlock    waddrmgr.BlockStamp
-
-	// rescanUpdate is a channel will be sent items that we should match
-	// transactions against while processing a chain rescan to determine if
-	// they are relevant to the client.
-	rescanUpdate chan interface{}
 
 	// watchedAddresses, watchedOutPoints, and watchedTxs are the set of
 	// items we should match transactions against while processing a chain
@@ -187,14 +183,14 @@ func (c *FlokicoindClient) IsCurrent() bool {
 // GetRawTransactionVerbose returns a TxRawResult from the tx hash.
 func (c *FlokicoindClient) GetRawTransactionVerbose(hash *chainhash.Hash, blkHash *chainhash.Hash) (*chainjson.TxRawResult, error) {
 
-	return c.chainConn.client.GetRawTransactionVerbose(hash, blkHash)
+	return c.chainConn.client.GetRawTransactionVerbose(hash)
 }
 
 // GetRawTransaction returns a `chainutil.Tx` from the tx hash.
 func (c *FlokicoindClient) GetRawTransaction(
-	hash *chainhash.Hash, blkHash *chainhash.Hash) (*chainutil.Tx, error) {
+	hash *chainhash.Hash) (*chainutil.Tx, error) {
 
-	return c.chainConn.client.GetRawTransaction(hash, blkHash)
+	return c.chainConn.client.GetRawTransaction(hash)
 }
 
 // GetRawMempool returns the raw mempool.
@@ -269,11 +265,7 @@ func (c *FlokicoindClient) Notifications() <-chan interface{} {
 func (c *FlokicoindClient) NotifyReceived(addrs []chainutil.Address) error {
 	_ = c.NotifyBlocks()
 
-	select {
-	case c.rescanUpdate <- addrs:
-	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
-	}
+	c.updateWatchedFilters(addrs)
 
 	return nil
 }
@@ -281,14 +273,11 @@ func (c *FlokicoindClient) NotifyReceived(addrs []chainutil.Address) error {
 // NotifySpent allows the chain backend to notify the caller whenever a
 // transaction spends any of the given outpoints.
 func (c *FlokicoindClient) NotifySpent(outPoints []*wire.OutPoint) error {
-	_ = c.NotifyBlocks()
 
 	// Send the outpoints so the client will cache them.
-	select {
-	case c.rescanUpdate <- outPoints:
-	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
-	}
+	c.updateWatchedFilters(outPoints)
+
+	_ = c.NotifyBlocks()
 
 	// Now we do a quick check in current mempool to see if we already have
 	// txes that spends the given outpoints.
@@ -304,7 +293,7 @@ func (c *FlokicoindClient) NotifySpent(outPoints []*wire.OutPoint) error {
 
 		// Found the tx that spends the input, now we fetch the raw tx
 		// and send notification.
-		tx, err := c.GetRawTransaction(&txid, nil)
+		tx, err := c.GetRawTransaction(&txid)
 		if err != nil {
 			log.Errorf("Unable to get raw transaction for %v, "+
 				"err: %v", txid, err)
@@ -329,13 +318,10 @@ func (c *FlokicoindClient) NotifySpent(outPoints []*wire.OutPoint) error {
 // NotifyTx allows the chain backend to notify the caller whenever any of the
 // given transactions confirm within the chain.
 func (c *FlokicoindClient) NotifyTx(txids []chainhash.Hash) error {
-	_ = c.NotifyBlocks()
 
-	select {
-	case c.rescanUpdate <- txids:
-	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
-	}
+	c.updateWatchedFilters(txids)
+
+	_ = c.NotifyBlocks()
 
 	return nil
 }
@@ -404,21 +390,7 @@ func (c *FlokicoindClient) shouldNotifyBlocks() bool {
 //	[]*chainhash.Hash
 func (c *FlokicoindClient) LoadTxFilter(reset bool, filters ...interface{}) error {
 	if reset {
-		select {
-		case c.rescanUpdate <- struct{}{}:
-		case <-c.quit:
-			return ErrFlokicoindClientShuttingDown
-		}
-	}
-
-	updateFilter := func(filter interface{}) error {
-		select {
-		case c.rescanUpdate <- filter:
-		case <-c.quit:
-			return ErrFlokicoindClientShuttingDown
-		}
-
-		return nil
+		c.resetWatchedFilters()
 	}
 
 	// In order to make this operation atomic, we'll iterate through the
@@ -437,9 +409,7 @@ func (c *FlokicoindClient) LoadTxFilter(reset bool, filters ...interface{}) erro
 	}
 
 	for _, filter := range filters {
-		if err := updateFilter(filter); err != nil {
-			return err
-		}
+		c.updateWatchedFilters(filter)
 	}
 
 	return nil
@@ -504,24 +474,19 @@ func (c *FlokicoindClient) Rescan(blockHash *chainhash.Hash,
 	}
 
 	// We'll then update our filters with the given outpoints and addresses.
-	select {
-	case c.rescanUpdate <- addresses:
-	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
-	}
-
-	select {
-	case c.rescanUpdate <- outPoints:
-	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
-	}
+	c.updateWatchedFilters(addresses)
+	c.updateWatchedFilters(outPoints)
 
 	// Once the filters have been updated, we can begin the rescan.
-	select {
-	case c.rescanUpdate <- *blockHash:
-	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
-	}
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+
+		err := c.rescan(*blockHash)
+		if err != nil {
+			log.Errorf("Unable to complete chain rescan: %v", err)
+		}
+	}()
 
 	return nil
 }
@@ -561,9 +526,6 @@ func (c *FlokicoindClient) Start() error {
 	}
 	c.bestBlockMtx.Unlock()
 
-	c.wg.Add(1)
-	go c.rescanHandler()
-
 	return nil
 }
 
@@ -591,87 +553,6 @@ func (c *FlokicoindClient) Stop() {
 // NOTE: This is part of the chain.Interface interface.
 func (c *FlokicoindClient) WaitForShutdown() {
 	c.wg.Wait()
-}
-
-// rescanHandler handles the logic needed for the caller to trigger a chain
-// rescan.
-//
-// NOTE: This must be called as a goroutine.
-func (c *FlokicoindClient) rescanHandler() {
-	defer c.wg.Done()
-
-	for {
-		select {
-		case update := <-c.rescanUpdate:
-			switch update := update.(type) {
-
-			// We're clearing the filters.
-			case struct{}:
-				c.watchMtx.Lock()
-				c.watchedOutPoints = make(map[wire.OutPoint]struct{})
-				c.watchedAddresses = make(map[string]struct{})
-				c.watchedTxs = make(map[chainhash.Hash]struct{})
-				c.watchMtx.Unlock()
-
-			// We're adding the addresses to our filter.
-			case []chainutil.Address:
-				c.watchMtx.Lock()
-				for _, addr := range update {
-					c.watchedAddresses[addr.String()] = struct{}{}
-				}
-				c.watchMtx.Unlock()
-
-			// We're adding the outpoints to our filter.
-			case []wire.OutPoint:
-				c.watchMtx.Lock()
-				for _, op := range update {
-					c.watchedOutPoints[op] = struct{}{}
-				}
-				c.watchMtx.Unlock()
-			case []*wire.OutPoint:
-				c.watchMtx.Lock()
-				for _, op := range update {
-					c.watchedOutPoints[*op] = struct{}{}
-				}
-				c.watchMtx.Unlock()
-
-			// We're adding the outpoints that map to the scripts
-			// that we should scan for to our filter.
-			case map[wire.OutPoint]chainutil.Address:
-				c.watchMtx.Lock()
-				for op := range update {
-					c.watchedOutPoints[op] = struct{}{}
-				}
-				c.watchMtx.Unlock()
-
-			// We're adding the transactions to our filter.
-			case []chainhash.Hash:
-				c.watchMtx.Lock()
-				for _, txid := range update {
-					c.watchedTxs[txid] = struct{}{}
-				}
-				c.watchMtx.Unlock()
-			case []*chainhash.Hash:
-				c.watchMtx.Lock()
-				for _, txid := range update {
-					c.watchedTxs[*txid] = struct{}{}
-				}
-				c.watchMtx.Unlock()
-
-			// We're starting a rescan from the hash.
-			case chainhash.Hash:
-				if err := c.rescan(update); err != nil {
-					log.Errorf("Unable to complete chain "+
-						"rescan: %v", err)
-				}
-			default:
-				log.Warnf("Received unexpected filter type %T",
-					update)
-			}
-		case <-c.quit:
-			return
-		}
-	}
 }
 
 // ntfnHandler handles the logic to retrieve ZMQ notifications from the backing
@@ -1079,6 +960,9 @@ func (c *FlokicoindClient) rescan(start chainhash.Hash) error {
 	}
 	headers.PushBack(previousHeader)
 
+	log.Debugf("Rescanning from block height %v to %v",
+		previousHeader.Height+1, bestBlock.Height)
+
 	// Cycle through all of the blocks known to flokicoind, being mindful of
 	// reorgs.
 	for i := previousHeader.Height + 1; i <= bestBlock.Height; i++ {
@@ -1358,14 +1242,18 @@ func (c *FlokicoindClient) filterTx(txDetails *chainutil.Tx,
 			break
 		}
 
+		sig := txIn.SignatureScript
+		witness := txIn.Witness
+
 		// Otherwise, we'll check whether it matches a pkScript in our
 		// watch list encoded as an address. To do so, we'll re-derive
 		// the pkScript of the output the input is attempting to spend.
-		pkScript, err := txscript.ComputePkScript(
-			txIn.SignatureScript, txIn.Witness,
-		)
+		pkScript, err := txscript.ComputePkScript(sig, witness)
 		if err != nil {
 			// Non-standard outputs can be safely skipped.
+			log.Warnf("Received non-standard input sig=%x, "+
+				"witness=%x", sig, witness)
+
 			continue
 		}
 		addr, err := pkScript.Address(c.chainConn.cfg.ChainParams)
@@ -1386,8 +1274,12 @@ func (c *FlokicoindClient) filterTx(txDetails *chainutil.Tx,
 		_, addrs, _, err := txscript.ExtractPkScriptAddrs(
 			txOut.PkScript, c.chainConn.cfg.ChainParams,
 		)
+
 		if err != nil {
 			// Non-standard outputs can be safely skipped.
+			log.Warnf("Received non-standard output script=%x",
+				txOut.PkScript)
+
 			continue
 		}
 
@@ -1416,6 +1308,10 @@ func (c *FlokicoindClient) filterTx(txDetails *chainutil.Tx,
 		return false, rec, nil
 	}
 
+	log.Tracef("Found relevant tx %v", NewLogClosure(func() string {
+		return spew.Sdump(txDetails)
+	}))
+
 	// Otherwise, the transaction matched our filters, so we should dispatch
 	// a notification for it. If it's still unconfirmed, we'll include it in
 	// our mempool so that it can also be notified as part of
@@ -1435,4 +1331,59 @@ func (c *FlokicoindClient) LookupInputMempoolSpend(op wire.OutPoint) (
 	chainhash.Hash, bool) {
 
 	return c.chainConn.events.LookupInputSpend(op)
+}
+
+// resetWatchedFilters empties the maps used to track outpoints, addresses, and
+// txns.
+func (c *FlokicoindClient) resetWatchedFilters() {
+	c.watchMtx.Lock()
+	defer c.watchMtx.Unlock()
+
+	c.watchedOutPoints = make(map[wire.OutPoint]struct{})
+	c.watchedAddresses = make(map[string]struct{})
+	c.watchedTxs = make(map[chainhash.Hash]struct{})
+}
+
+// updateWatchedFilters is used to update the internal maps that track the
+// watched addresses, outpoints, or txns.
+func (c *FlokicoindClient) updateWatchedFilters(update any) {
+	c.watchMtx.Lock()
+	defer c.watchMtx.Unlock()
+
+	switch update := update.(type) {
+	// We're adding the addresses to our filter.
+	case []chainutil.Address:
+		for _, addr := range update {
+			c.watchedAddresses[addr.String()] = struct{}{}
+		}
+
+	// We're adding the outpoints to our filter.
+	case []wire.OutPoint:
+		for _, op := range update {
+			c.watchedOutPoints[op] = struct{}{}
+		}
+
+	case []*wire.OutPoint:
+		for _, op := range update {
+			c.watchedOutPoints[*op] = struct{}{}
+		}
+
+	// We're adding the outpoints that map to the scripts
+	// that we should scan for to our filter.
+	case map[wire.OutPoint]chainutil.Address:
+		for op := range update {
+			c.watchedOutPoints[op] = struct{}{}
+		}
+
+	// We're adding the transactions to our filter.
+	case []chainhash.Hash:
+		for _, txid := range update {
+			c.watchedTxs[txid] = struct{}{}
+		}
+
+	case []*chainhash.Hash:
+		for _, txid := range update {
+			c.watchedTxs[*txid] = struct{}{}
+		}
+	}
 }
