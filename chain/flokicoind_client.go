@@ -181,7 +181,7 @@ func (c *FlokicoindClient) IsCurrent() bool {
 }
 
 // GetRawTransactionVerbose returns a TxRawResult from the tx hash.
-func (c *FlokicoindClient) GetRawTransactionVerbose(hash *chainhash.Hash, blkHash *chainhash.Hash) (*chainjson.TxRawResult, error) {
+func (c *FlokicoindClient) GetRawTransactionVerbose(hash *chainhash.Hash) (*chainjson.TxRawResult, error) {
 
 	return c.chainConn.client.GetRawTransactionVerbose(hash)
 }

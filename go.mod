@@ -4,8 +4,8 @@ go 1.23.4
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/flokiorg/flokicoin-neutrino v0.0.0-00010101000000-000000000000
-	github.com/flokiorg/go-flokicoin v0.23.5-0.20230711222809-7faa9b266231
+	github.com/flokiorg/flokicoin-neutrino v0.16.1-beta.2
+	github.com/flokiorg/go-flokicoin v0.25.6-beta
 	github.com/gorilla/websocket v1.5.3
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jrick/logrotate v1.1.2
@@ -47,7 +47,3 @@ require (
 	golang.org/x/crypto v0.36.0
 	golang.org/x/sys v0.31.0 // indirect
 )
-
-replace github.com/flokiorg/go-flokicoin => ../go-flokicoin
-
-replace github.com/flokiorg/flokicoin-neutrino => ../flokicoin-neutrino
