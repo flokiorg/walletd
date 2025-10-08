@@ -80,8 +80,8 @@ func FeeForSerializeSize(relayFeePerKb chainutil.Amount, txSerializeSize int) ch
 		fee = relayFeePerKb
 	}
 
-	if fee < 0 || fee > chainutil.MaxLoki {
-		fee = chainutil.MaxLoki
+	if fee < 0 || fee > chainutil.Amount(chainutil.MaxLoki) {
+		fee = chainutil.Amount(chainutil.MaxLoki)
 	}
 
 	return fee

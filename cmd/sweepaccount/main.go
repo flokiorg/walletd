@@ -358,7 +358,7 @@ func promptSecret(what string) (string, error) {
 }
 
 func saneOutputValue(amount chainutil.Amount) bool {
-	return amount >= 0 && amount <= chainutil.MaxLoki
+	return amount >= 0 && amount <= chainutil.Amount(chainutil.MaxLoki)
 }
 
 func parseOutPoint(input *chainjson.ListUnspentResult) (wire.OutPoint, error) {
