@@ -641,20 +641,20 @@ func (c *ElectrumClient) Rescan(blockHash *chainhash.Hash, addresses []chainutil
 	select {
 	case c.rescanUpdate <- addresses:
 	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
+		return ErrLokidClientShuttingDown
 	}
 
 	select {
 	case c.rescanUpdate <- outPoints:
 	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
+		return ErrLokidClientShuttingDown
 	}
 
 	// Once the filters have been updated, we can begin the rescan.
 	select {
 	case c.rescanUpdate <- *blockHash:
 	case <-c.quit:
-		return ErrFlokicoindClientShuttingDown
+		return ErrLokidClientShuttingDown
 	}
 
 	return nil

@@ -24,10 +24,10 @@ import (
 
 // This file is ignored
 
-// TestFlokicoindEvents ensures that the FlokicoindClient correctly delivers tx and
+// TestLokidEvents ensures that the LokidClient correctly delivers tx and
 // block notifications for both the case where a ZMQ subscription is used and
 // for the case where RPC polling is used.
-func TestFlokicoindEvents(t *testing.T) {
+func TestLokidEvents(t *testing.T) {
 	tests := []struct {
 		name       string
 		rpcPolling bool
@@ -45,13 +45,13 @@ func TestFlokicoindEvents(t *testing.T) {
 	for _, test := range tests {
 		test := test
 
-		// Set up 2 flokicoind miners.
+		// Set up 2 lokid miners.
 		miner1, miner2 := setupMiners(t)
 		addr := miner1.P2PAddress()
 
 		t.Run(test.name, func(t *testing.T) {
-			// Set up a flokicoind node and connect it to miner 1.
-			flcClient := setupFlokicoind(t, addr, test.rpcPolling)
+			// Set up a lokid node and connect it to miner 1.
+			flcClient := setupLokid(t, addr, test.rpcPolling)
 
 			// Test that the correct block `Connect` and
 			// `Disconnect` notifications are received during a
@@ -60,17 +60,17 @@ func TestFlokicoindEvents(t *testing.T) {
 
 			// Test that the expected block notifications are
 			// received.
-			flcClient = setupFlokicoind(t, addr, test.rpcPolling)
+			flcClient = setupLokid(t, addr, test.rpcPolling)
 			testNotifyBlocks(t, miner1, flcClient)
 
 			// Test that the expected tx notifications are
 			// received.
-			flcClient = setupFlokicoind(t, addr, test.rpcPolling)
+			flcClient = setupLokid(t, addr, test.rpcPolling)
 			testNotifyTx(t, miner1, flcClient)
 
 			// Test notifications for inputs already found in
 			// mempool.
-			flcClient = setupFlokicoind(t, addr, test.rpcPolling)
+			flcClient = setupLokid(t, addr, test.rpcPolling)
 			testNotifySpentMempool(t, miner1, flcClient)
 
 			// Test looking up mempool for input spent.
@@ -81,7 +81,7 @@ func TestFlokicoindEvents(t *testing.T) {
 
 // testNotifyTx tests that the correct notifications are received for the
 // subscribed tx.
-func testNotifyTx(t *testing.T, miner *rpctest.Harness, client *FlokicoindClient) {
+func testNotifyTx(t *testing.T, miner *rpctest.Harness, client *LokidClient) {
 	require := require.New(t)
 
 	script, _, err := randPubKeyHashScript()
@@ -127,7 +127,7 @@ func testNotifyTx(t *testing.T, miner *rpctest.Harness, client *FlokicoindClient
 // testNotifyBlocks tests that the correct notifications are received for
 // blocks in the simple non-reorg case.
 func testNotifyBlocks(t *testing.T, miner *rpctest.Harness,
-	client *FlokicoindClient) {
+	client *LokidClient) {
 
 	require := require.New(t)
 
@@ -175,7 +175,7 @@ func testNotifyBlocks(t *testing.T, miner *rpctest.Harness,
 // testNotifySpentMempool tests that the client correctly notifies the caller
 // when the requested input has already been spent in mempool.
 func testNotifySpentMempool(t *testing.T, miner *rpctest.Harness,
-	client *FlokicoindClient) {
+	client *LokidClient) {
 
 	require := require.New(t)
 
@@ -225,7 +225,7 @@ func testNotifySpentMempool(t *testing.T, miner *rpctest.Harness,
 // testLookupInputMempoolSpend tests that LookupInputMempoolSpend returns the
 // correct tx hash and whether the input has been spent in the mempool.
 func testLookupInputMempoolSpend(t *testing.T, miner *rpctest.Harness,
-	client *FlokicoindClient) {
+	client *LokidClient) {
 
 	rt := require.New(t)
 
@@ -262,10 +262,10 @@ func testLookupInputMempoolSpend(t *testing.T, miner *rpctest.Harness,
 	rt.Equal(tx.TxHash(), txid)
 }
 
-// testReorg tests that the given FlokicoindClient correctly responds to a chain
+// testReorg tests that the given LokidClient correctly responds to a chain
 // re-org.
 func testReorg(t *testing.T, miner1, miner2 *rpctest.Harness,
-	client *FlokicoindClient) {
+	client *LokidClient) {
 
 	require := require.New(t)
 
@@ -458,25 +458,25 @@ func setupMiners(t *testing.T) (*rpctest.Harness, *rpctest.Harness) {
 	return miner1, miner2
 }
 
-// setupFlokicoind starts up a flokicoind node with either a zmq connection or
+// setupLokid starts up a lokid node with either a zmq connection or
 // rpc polling connection and returns a client wrapper of this connection.
-func setupFlokicoind(t *testing.T, minerAddr string,
-	rpcPolling bool) *FlokicoindClient {
+func setupLokid(t *testing.T, minerAddr string,
+	rpcPolling bool) *LokidClient {
 
-	// Start a flokicoind instance and connect it to miner1.
-	tempFlokicoindDir, err := os.MkdirTemp("", "flokicoind")
+	// Start a lokid instance and connect it to miner1.
+	tempLokidDir, err := os.MkdirTemp("", "lokid")
 	require.NoError(t, err)
 
-	zmqBlockHost := "ipc:///" + tempFlokicoindDir + "/blocks.socket"
-	zmqTxHost := "ipc:///" + tempFlokicoindDir + "/tx.socket"
+	zmqBlockHost := "ipc:///" + tempLokidDir + "/blocks.socket"
+	zmqTxHost := "ipc:///" + tempLokidDir + "/tx.socket"
 	t.Cleanup(func() {
-		os.RemoveAll(tempFlokicoindDir)
+		os.RemoveAll(tempLokidDir)
 	})
 
 	rpcPort := rand.Int()%(65536-1024) + 1024
-	flokicoind := exec.Command(
-		"flokicoind",
-		"-datadir="+tempFlokicoindDir,
+	lokid := exec.Command(
+		"lokid",
+		"-datadir="+tempLokidDir,
 		"-regtest",
 		"-connect="+minerAddr,
 		"-txindex",
@@ -489,18 +489,18 @@ func setupFlokicoind(t *testing.T, minerAddr string,
 		"-zmqpubrawtx="+zmqTxHost,
 	)
 
-	require.NoError(t, flokicoind.Start())
+	require.NoError(t, lokid.Start())
 
 	t.Cleanup(func() {
-		flokicoind.Process.Kill()
-		flokicoind.Wait()
+		lokid.Process.Kill()
+		lokid.Wait()
 	})
 
-	// Wait for the flokicoind instance to start up.
+	// Wait for the lokid instance to start up.
 	time.Sleep(time.Second)
 
 	host := fmt.Sprintf("127.0.0.1:%d", rpcPort)
-	cfg := &FlokicoindConfig{
+	cfg := &LokidConfig{
 		ChainParams: &chaincfg.RegressionNetParams,
 		Host:        host,
 		User:        "weks",
@@ -525,7 +525,7 @@ func setupFlokicoind(t *testing.T, minerAddr string,
 		}
 	}
 
-	chainConn, err := NewFlokicoindConn(cfg)
+	chainConn, err := NewLokidConn(cfg)
 	require.NoError(t, err)
 	require.NoError(t, chainConn.Start())
 
@@ -533,8 +533,8 @@ func setupFlokicoind(t *testing.T, minerAddr string,
 		chainConn.Stop()
 	})
 
-	// Create a flokicoind client.
-	flcClient := chainConn.NewFlokicoindClient()
+	// Create a lokid client.
+	flcClient := chainConn.NewLokidClient()
 	require.NoError(t, flcClient.Start())
 
 	t.Cleanup(func() {

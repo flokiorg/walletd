@@ -16,13 +16,13 @@ import (
 )
 
 // ZMQConfig holds all the config values needed to set up a ZMQ connection to
-// flokicoind.
+// lokid.
 type ZMQConfig struct {
-	// ZMQBlockHost is the IP address and port of the flokicoind's rawblock
+	// ZMQBlockHost is the IP address and port of the lokid's rawblock
 	// listener.
 	ZMQBlockHost string
 
-	// ZMQTxHost is the IP address and port of the flokicoind's rawtx
+	// ZMQTxHost is the IP address and port of the lokid's rawtx
 	// listener.
 	ZMQTxHost string
 
@@ -31,7 +31,7 @@ type ZMQConfig struct {
 	ZMQReadDeadline time.Duration
 
 	// MempoolPollingInterval is the interval that will be used to poll
-	// flokicoind to update the local mempool. If a jitter factor is
+	// lokid to update the local mempool. If a jitter factor is
 	// configed, it will be
 	// applied to this value to provide randomness in the range,
 	// - max: MempoolPollingInterval * (1 + PollingIntervalJitter)
@@ -48,7 +48,7 @@ type ZMQConfig struct {
 	PollingIntervalJitter float64
 
 	// RPCBatchSize defines the number of RPC requests to be batches before
-	// sending them to the flokicoind node.
+	// sending them to the lokid node.
 	RPCBatchSize uint32
 
 	// RPCBatchInterval defines the time to wait before attempting the next
@@ -57,7 +57,7 @@ type ZMQConfig struct {
 }
 
 // daemonZMQEvents delivers block and transaction notifications that it gets
-// from ZMQ connections to flokicoind.
+// from ZMQ connections to lokid.
 type daemonZMQEvents struct {
 	cfg *ZMQConfig
 
@@ -80,10 +80,10 @@ type daemonZMQEvents struct {
 	// gettxspendingprevout endpoint.
 	mempool *mempool
 
-	// client is an rpc client to the flokicoind backend.
+	// client is an rpc client to the lokid backend.
 	client *rpcclient.Client
 
-	// hasPrevoutRPC is set when the flokicoind version is >= 24.0.0 and
+	// hasPrevoutRPC is set when the lokid version is >= 24.0.0 and
 	// doesn't need to maintain its own mempool.
 	hasPrevoutRPC bool
 
@@ -93,12 +93,12 @@ type daemonZMQEvents struct {
 
 // Ensure bitcoindZMQEvent implements the FlokicoinEvents interface at compile
 // time.
-var _ FlokicoindEvents = (*daemonZMQEvents)(nil)
+var _ LokidEvents = (*daemonZMQEvents)(nil)
 
-// newFlokicoindZMQEvents initialises the necessary zmq connections to flokicoind.
-// If flokicoind is on a version with the gettxspendingprevout RPC, we can omit
+// newLokidZMQEvents initialises the necessary zmq connections to lokid.
+// If lokid is on a version with the gettxspendingprevout RPC, we can omit
 // the mempool.
-func newFlokicoindZMQEvents(cfg *ZMQConfig, client *rpcclient.Client,
+func newLokidZMQEvents(cfg *ZMQConfig, client *rpcclient.Client,
 	bClient batchClient, hasRPC bool) (*daemonZMQEvents, error) {
 
 	// Check polling config.
@@ -113,7 +113,7 @@ func newFlokicoindZMQEvents(cfg *ZMQConfig, client *rpcclient.Client,
 		cfg.PollingIntervalJitter = 0
 	}
 
-	// Establish two different ZMQ connections to flokicoind to retrieve block
+	// Establish two different ZMQ connections to lokid to retrieve block
 	// and transaction event notifications. We'll use two as a separation of
 	// concern to ensure one type of event isn't dropped from the connection
 	// queue due to another type of event filling it up.
@@ -243,15 +243,15 @@ func (b *daemonZMQEvents) LookupInputSpend(
 func (b *daemonZMQEvents) blockEventHandler() {
 	defer b.wg.Done()
 
-	log.Info("Started listening for flokicoind block notifications via ZMQ "+
+	log.Info("Started listening for lokid block notifications via ZMQ "+
 		"on", b.blockConn.RemoteAddr())
 
 	// Set up the buffers we expect our messages to consume. ZMQ
-	// messages from flokicoind include three parts: the command, the
+	// messages from lokid include three parts: the command, the
 	// data, and the sequence number.
 	//
 	// We'll allocate a fixed data slice that we'll reuse when reading
-	// blocks from flokicoind through ZMQ. There's no need to recycle this
+	// blocks from lokid through ZMQ. There's no need to recycle this
 	// slice (zero out) after using it, as further reads will overwrite the
 	// slice and we'll only be deserializing the bytes needed.
 	var (
@@ -319,7 +319,7 @@ func (b *daemonZMQEvents) blockEventHandler() {
 
 		default:
 			// It's possible that the message wasn't fully read if
-			// flokicoind shuts down, which will produce an unreadable
+			// lokid shuts down, which will produce an unreadable
 			// event type. To prevent from logging it, we'll make
 			// sure it conforms to the ASCII standard.
 			if eventType == "" || !isASCII(eventType) {
@@ -340,15 +340,15 @@ func (b *daemonZMQEvents) blockEventHandler() {
 func (b *daemonZMQEvents) txEventHandler() {
 	defer b.wg.Done()
 
-	log.Info("Started listening for flokicoind transaction notifications "+
+	log.Info("Started listening for lokid transaction notifications "+
 		"via ZMQ on", b.txConn.RemoteAddr())
 
 	// Set up the buffers we expect our messages to consume. ZMQ
-	// messages from flokicoind include three parts: the command, the
+	// messages from lokid include three parts: the command, the
 	// data, and the sequence number.
 	//
 	// We'll allocate a fixed data slice that we'll reuse when reading
-	// transactions from flokicoind through ZMQ. There's no need to recycle
+	// transactions from lokid through ZMQ. There's no need to recycle
 	// this slice (zero out) after using it, as further reads will overwrite
 	// the slice and we'll only be deserializing the bytes needed.
 	var (
@@ -421,7 +421,7 @@ func (b *daemonZMQEvents) txEventHandler() {
 
 		default:
 			// It's possible that the message wasn't fully read if
-			// flokicoind shuts down, which will produce an unreadable
+			// lokid shuts down, which will produce an unreadable
 			// event type. To prevent from logging it, we'll make
 			// sure it conforms to the ASCII standard.
 			if eventType == "" || !isASCII(eventType) {

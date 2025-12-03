@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	// ErrBackendVersion is returned when running against a flokicoind or
-	// flokicoind that is older than the minimum version supported by the
+	// ErrBackendVersion is returned when running against a lokid or
+	// lokid that is older than the minimum version supported by the
 	// rpcclient.
 	ErrBackendVersion = errors.New("backend version too low")
 
@@ -21,11 +21,11 @@ var (
 	ErrUndefined = errors.New("undefined")
 )
 
-// RPCErr represents an error returned by flokicoind's RPC server.
+// RPCErr represents an error returned by lokid's RPC server.
 type RPCErr uint32
 
 // This section defines all possible errors or reject reasons returned from
-// flokicoind's `sendrawtransaction` or `testmempoolaccept` RPC.
+// lokid's `sendrawtransaction` or `testmempoolaccept` RPC.
 const (
 	// ErrMissingInputsOrSpent is returned when calling
 	// `sendrawtransaction` with missing inputs.
@@ -68,7 +68,7 @@ const (
 
 	// ErrTooManyReplacements is returned when a transaction causes too
 	// many transactions being replaced. This is set by
-	// `MAX_REPLACEMENT_CANDIDATES` in `flokicoind` and defaults to 100.
+	// `MAX_REPLACEMENT_CANDIDATES` in `lokid` and defaults to 100.
 	//
 	// NOTE: RBF rule 5.
 	ErrTooManyReplacements
@@ -91,7 +91,7 @@ const (
 	// non-witness bytes) that is disallowed.
 	//
 	// NOTE: ErrTxTooLarge must be put after ErrTxTooSmall because it's a
-	// subset of ErrTxTooSmall. Otherwise, if flokicoind returns
+	// subset of ErrTxTooSmall. Otherwise, if lokid returns
 	// `tx-size-small`, it will be matched to ErrTxTooLarge.
 	ErrTxTooSmall
 
@@ -200,7 +200,7 @@ const (
 )
 
 // Error implements the error interface. It returns the error message defined
-// in `flokicoind`.
+// in `lokid`.
 
 // Some of the dashes used in the original error string is removed, e.g.
 // "missing-inputs" is now "missing inputs". This is ok since we will normalize
@@ -337,20 +337,20 @@ func (r RPCErr) Error() string {
 	return "unknown error"
 }
 
-// Flokicoind28ErrMap contains error messages from flokicoind version v28.0 (and
+// Lokid28ErrMap contains error messages from lokid version v28.0 (and
 // later) that are returned from the `testmempoolaccept` and are different than
 // in previous versions.
-var Flokicoind28ErrMap = map[string]error{
+var Lokid28ErrMap = map[string]error{
 	// https://github.com/bitcoin/bitcoin/pull/30212
 	"transaction outputs already in utxo set": ErrTxAlreadyConfirmed,
 }
 
-// FlokicoindErrMap takes the errors returned from flokicoind's `testmempoolaccept` and
+// LokidErrMap takes the errors returned from lokid's `testmempoolaccept` and
 // `sendrawtransaction` RPCs and map them to the errors defined above, which
 // are results from calling either `testmempoolaccept` or `sendrawtransaction`
-// in `flokicoind`.
+// in `lokid`.
 //
-// Errors not mapped in `flokicoind`:
+// Errors not mapped in `lokid`:
 //   - deployment error from `validateSegWitDeployment`.
 //   - the error when total inputs is higher than max allowed value from
 //     `CheckTransactionInputs`.
@@ -362,7 +362,7 @@ var Flokicoind28ErrMap = map[string]error{
 // usage case of LND.
 //
 //nolint:lll
-var FlokicoindErrMap = map[string]error{
+var LokidErrMap = map[string]error{
 	// BIP125 related errors.
 	//
 	// When fee rate used or fees paid doesn't meet the requirements.
@@ -370,7 +370,7 @@ var FlokicoindErrMap = map[string]error{
 	"replacement transaction has an insufficient absolute fee": ErrInsufficientFee,
 
 	// When a transaction causes too many transactions being replaced. This
-	// is set by `MAX_REPLACEMENT_CANDIDATES` in `flokicoind` and defaults to
+	// is set by `MAX_REPLACEMENT_CANDIDATES` in `lokid` and defaults to
 	// 100.
 	"replacement transaction evicts more transactions than permitted": ErrTooManyReplacements,
 
@@ -465,16 +465,16 @@ var FlokicoindErrMap = map[string]error{
 	// A transaction that is locked by BIP68 sequence logic.
 	"transaction's sequence locks on inputs not met": ErrNonBIP68Final,
 
-	// TODO(yy): find/return the following errors in `flokicoind`.
+	// TODO(yy): find/return the following errors in `lokid`.
 	//
 	// A tiny transaction(in non-witness bytes) that is disallowed.
-	// "unmatched flokicoind error 1": ErrTxTooSmall,
-	// "unmatched flokicoind error 2": ErrScriptVerifyFlag,
+	// "unmatched lokid error 1": ErrTxTooSmall,
+	// "unmatched lokid error 2": ErrScriptVerifyFlag,
 	// // A transaction with invalid OP codes.
-	// "unmatched flokicoind error 3": ErrInvalidOpcode,
+	// "unmatched lokid error 3": ErrInvalidOpcode,
 	// // Minimally-small transaction(in non-witness bytes) that is
 	// // allowed.
-	// "unmatched flokicoind error 4": ErrSameNonWitnessData,
+	// "unmatched lokid error 4": ErrSameNonWitnessData,
 
 	// Returned from `testmempoolaccept` here:
 	// - https://github.com/flokiorg/go-flokicoin/blob/d881c686e61db35e332fb0309178152dac589b03/rpcserver.go#L3893
@@ -485,11 +485,11 @@ var FlokicoindErrMap = map[string]error{
 	"max-fee-exceeded": ErrMaxFeeExceeded,
 }
 
-// FlokicoindErrMapPre2402 defines the error mapping for flokicoind versions prior to
+// LokidErrMapPre2402 defines the error mapping for lokid versions prior to
 // 0.24.2 - all the errors changed in this commit have been defined here to
 // support older versions:
 // - https://github.com/flokiorg/go-flokicoin/pull/2053/commits/ef54c49df443815d50765e8c4f31a87944d950a6
-var FlokicoindErrMapPre2402 = map[string]error{
+var LokidErrMapPre2402 = map[string]error{
 	// A transaction with too large output value.
 	"is higher than max allowed value": ErrLargeOutput,
 
@@ -498,7 +498,7 @@ var FlokicoindErrMapPre2402 = map[string]error{
 	"already spent by transaction": ErrMempoolConflict,
 
 	// When a transaction causes too many transactions being replaced. This
-	// is set by `MAX_REPLACEMENT_CANDIDATES` in `flokicoind` and defaults to
+	// is set by `MAX_REPLACEMENT_CANDIDATES` in `lokid` and defaults to
 	// 100.
 	"evicts more transactions than permitted": ErrTooManyReplacements,
 

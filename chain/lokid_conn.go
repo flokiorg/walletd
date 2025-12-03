@@ -19,62 +19,62 @@ import (
 
 const (
 	// rawBlockZMQCommand is the command used to receive raw block
-	// notifications from flokicoind through ZMQ.
+	// notifications from lokid through ZMQ.
 	rawBlockZMQCommand = "rawblock"
 
 	// rawTxZMQCommand is the command used to receive raw transaction
-	// notifications from flokicoind through ZMQ.
+	// notifications from lokid through ZMQ.
 	rawTxZMQCommand = "rawtx"
 
 	// maxRawBlockSize is the maximum size in bytes for a raw block received
-	// from flokicoind through ZMQ.
+	// from lokid through ZMQ.
 	maxRawBlockSize = 4e6
 
 	// maxRawTxSize is the maximum size in bytes for a raw transaction
-	// received from flokicoind through ZMQ.
+	// received from lokid through ZMQ.
 	maxRawTxSize = maxRawBlockSize
 
 	// seqNumLen is the length of the sequence number of a message sent from
-	// flokicoind through ZMQ.
+	// lokid through ZMQ.
 	seqNumLen = 4
 
-	// errBlockPrunedStr is the error message returned by flokicoind upon
+	// errBlockPrunedStr is the error message returned by lokid upon
 	// calling GetBlock on a pruned block.
 	errBlockPrunedStr = "Block not available (pruned data)"
 
 	// errStillLoadingCode is the error code returned when an RPC request
-	// is made but flokicoind is still in the process of loading or verifying
+	// is made but lokid is still in the process of loading or verifying
 	// blocks.
 	errStillLoadingCode = "-28"
 
-	// bitcoindStartTimeout is the time we wait for flokicoind to finish
+	// bitcoindStartTimeout is the time we wait for lokid to finish
 	// loading and verifying blocks and become ready to serve RPC requests.
 	bitcoindStartTimeout = 30 * time.Second
 )
 
-// ErrFlokicoindStartTimeout is returned when the flokicoind daemon fails to load
+// ErrLokidStartTimeout is returned when the lokid daemon fails to load
 // and verify blocks under 30s during startup.
-var ErrFlokicoindStartTimeout = errors.New("flokicoind start timeout")
+var ErrLokidStartTimeout = errors.New("lokid start timeout")
 
-// FlokicoindConfig contains all of the parameters required to establish a
-// connection to a flokicoind's RPC.
-type FlokicoindConfig struct {
-	// ChainParams are the chain parameters the flokicoind server is running
+// LokidConfig contains all of the parameters required to establish a
+// connection to a lokid's RPC.
+type LokidConfig struct {
+	// ChainParams are the chain parameters the lokid server is running
 	// on.
 	ChainParams *chaincfg.Params
 
-	// Host is the IP address and port of the flokicoind's RPC server.
+	// Host is the IP address and port of the lokid's RPC server.
 	Host string
 
-	// User is the username to use to authenticate to flokicoind's RPC server.
+	// User is the username to use to authenticate to lokid's RPC server.
 	User string
 
-	// Pass is the passphrase to use to authenticate to flokicoind's RPC
+	// Pass is the passphrase to use to authenticate to lokid's RPC
 	// server.
 	Pass string
 
 	// ZMQConfig holds the configuration settings required for setting up
-	// zmq connections to flokicoind.
+	// zmq connections to lokid.
 	ZMQConfig *ZMQConfig
 
 	// PollingConfig holds the configuration settings required for using
@@ -90,39 +90,39 @@ type FlokicoindConfig struct {
 	// PrunedModeMaxPeers is the maximum number of peers we'll attempt to
 	// retrieve pruned blocks from.
 	//
-	// NOTE: This only applies for pruned flokicoind nodes.
+	// NOTE: This only applies for pruned lokid nodes.
 	PrunedModeMaxPeers int
 }
 
-// FlokicoindConn represents a persistent client connection to a flokicoind node
+// LokidConn represents a persistent client connection to a lokid node
 // that listens for events read from a ZMQ connection.
-type FlokicoindConn struct {
+type LokidConn struct {
 	started int32 // To be used atomically.
 	stopped int32 // To be used atomically.
 
 	// rescanClientCounter is an atomic counter that assigns a unique ID to
-	// each new flokicoind rescan client using the current flokicoind
+	// each new lokid rescan client using the current lokid
 	// connection.
 	rescanClientCounter uint64
 
-	cfg FlokicoindConfig
+	cfg LokidConfig
 
-	// client is the RPC client to the flokicoind node.
+	// client is the RPC client to the lokid node.
 	client *rpcclient.Client
 
 	// prunedBlockDispatcher handles all of the pruned block requests.
 	//
-	// NOTE: This is nil when the flokicoind node is not pruned.
+	// NOTE: This is nil when the lokid node is not pruned.
 	prunedBlockDispatcher *PrunedBlockDispatcher
 
 	// events handles the block and transaction events that are received or
-	// retrieved from flokicoind.
-	events FlokicoindEvents
+	// retrieved from lokid.
+	events LokidEvents
 
-	// rescanClients is the set of active flokicoind rescan clients to which
+	// rescanClients is the set of active lokid rescan clients to which
 	// ZMQ event notifications will be sent to.
 	rescanClientsMtx sync.Mutex
-	rescanClients    map[uint64]*FlokicoindClient
+	rescanClients    map[uint64]*LokidClient
 
 	quit chan struct{}
 	wg   sync.WaitGroup
@@ -132,11 +132,11 @@ type FlokicoindConn struct {
 // running over Tor, this must support dialing peers over Tor as well.
 type Dialer = func(string) (net.Conn, error)
 
-// NewFlokicoindConn creates a client connection to the node described by the host
+// NewLokidConn creates a client connection to the node described by the host
 // string. The ZMQ connections are established immediately to ensure liveness.
 // If the remote node does not operate on the same flokicoin network as described
 // by the passed chain parameters, the connection will be disconnected.
-func NewFlokicoindConn(cfg *FlokicoindConfig) (*FlokicoindConn, error) {
+func NewLokidConn(cfg *LokidConfig) (*LokidConn, error) {
 	clientCfg := &rpcclient.ConnConfig{
 		Host:                 cfg.Host,
 		User:                 cfg.User,
@@ -170,11 +170,11 @@ func NewFlokicoindConn(cfg *FlokicoindConfig) (*FlokicoindConn, error) {
 	// operations if so.
 	chainInfo, err := client.GetBlockChainInfo()
 	if err != nil {
-		return nil, fmt.Errorf("unable to determine if flokicoind is "+
+		return nil, fmt.Errorf("unable to determine if lokid is "+
 			"pruned: %w", err)
 	}
 
-	// Only initialize the PrunedBlockDispatcher when the connected flokicoind
+	// Only initialize the PrunedBlockDispatcher when the connected lokid
 	// node is pruned.
 	var prunedBlockDispatcher *PrunedBlockDispatcher
 	if chainInfo.Pruned {
@@ -195,15 +195,15 @@ func NewFlokicoindConn(cfg *FlokicoindConfig) (*FlokicoindConn, error) {
 		}
 	}
 
-	bc := &FlokicoindConn{
+	bc := &LokidConn{
 		cfg:                   *cfg,
 		client:                client,
 		prunedBlockDispatcher: prunedBlockDispatcher,
-		rescanClients:         make(map[uint64]*FlokicoindClient),
+		rescanClients:         make(map[uint64]*LokidClient),
 		quit:                  make(chan struct{}),
 	}
 
-	bc.events, err = NewFlokicoindEventSubscriber(cfg, client, batchClient)
+	bc.events, err = NewLokidEventSubscriber(cfg, client, batchClient)
 	if err != nil {
 		return nil, err
 	}
@@ -211,12 +211,12 @@ func NewFlokicoindConn(cfg *FlokicoindConfig) (*FlokicoindConn, error) {
 	return bc, nil
 }
 
-// Start attempts to establish a RPC and ZMQ connection to a flokicoind node. If
+// Start attempts to establish a RPC and ZMQ connection to a lokid node. If
 // successful, a goroutine is spawned to read events from the ZMQ connection.
 // It's possible for this function to fail due to a limited number of connection
 // attempts. This is done to prevent waiting forever on the connection to be
 // established in the case that the node is down.
-func (c *FlokicoindConn) Start() error {
+func (c *LokidConn) Start() error {
 	if !atomic.CompareAndSwapInt32(&c.started, 0, 1) {
 		return nil
 	}
@@ -224,7 +224,7 @@ func (c *FlokicoindConn) Start() error {
 	// If we're connected to a pruned backend, we'll need to also start our
 	// pruned block dispatcher to handle pruned block requests.
 	if c.prunedBlockDispatcher != nil {
-		log.Debug("Detected pruned flokicoind backend")
+		log.Debug("Detected pruned lokid backend")
 		if err := c.prunedBlockDispatcher.Start(); err != nil {
 			return err
 		}
@@ -237,9 +237,9 @@ func (c *FlokicoindConn) Start() error {
 	return c.events.Start()
 }
 
-// Stop terminates the RPC and ZMQ connection to a flokicoind node and removes any
+// Stop terminates the RPC and ZMQ connection to a lokid node and removes any
 // active rescan clients.
-func (c *FlokicoindConn) Stop() {
+func (c *LokidConn) Stop() {
 	if !atomic.CompareAndSwapInt32(&c.stopped, 0, 1) {
 		return
 	}
@@ -252,7 +252,7 @@ func (c *FlokicoindConn) Stop() {
 	c.client.Shutdown()
 
 	if err := c.events.Stop(); err != nil {
-		log.Errorf("error shutting down flokicoind events: %w", err)
+		log.Errorf("error shutting down lokid events: %w", err)
 	}
 
 	if c.prunedBlockDispatcher != nil {
@@ -265,7 +265,7 @@ func (c *FlokicoindConn) Stop() {
 
 // sendBlockToClients is used to notify all rescan clients of a new block. It
 // MUST be run in a goroutine.
-func (c *FlokicoindConn) sendBlockToClients() {
+func (c *LokidConn) sendBlockToClients() {
 	defer c.wg.Done()
 
 	// sendBlock is a helper function that sends the given block to each
@@ -298,7 +298,7 @@ func (c *FlokicoindConn) sendBlockToClients() {
 
 // sendTxToClients is used to notify all rescan clients of a new transaction.
 // It MUST be run as a goroutine.
-func (c *FlokicoindConn) sendTxToClients() {
+func (c *LokidConn) sendTxToClients() {
 	defer c.wg.Done()
 
 	sendTx := func(tx *wire.MsgTx) {
@@ -328,7 +328,7 @@ func (c *FlokicoindConn) sendTxToClients() {
 }
 
 // getBlockHashDuringStartup is used to call the getblockhash RPC during
-// startup. It catches the case where flokicoind is still in the process of
+// startup. It catches the case where lokid is still in the process of
 // loading blocks, which returns the following error,
 // - "-28: Loading block index..."
 // - "-28: Verifying blocks..."
@@ -356,7 +356,7 @@ func getBlockHashDuringStartup(
 	for {
 		select {
 		case <-timeout:
-			return nil, ErrFlokicoindStartTimeout
+			return nil, ErrLokidStartTimeout
 
 		// Retry every second.
 		case <-time.After(1 * time.Second):
@@ -375,7 +375,7 @@ func getBlockHashDuringStartup(
 	}
 }
 
-// getCurrentNet returns the network on which the flokicoind node is running.
+// getCurrentNet returns the network on which the lokid node is running.
 func getCurrentNet(client *rpcclient.Client) (wire.FlokicoinNet, error) {
 	hash, err := getBlockHashDuringStartup(client)
 	if err != nil {
@@ -396,11 +396,11 @@ func getCurrentNet(client *rpcclient.Client) (wire.FlokicoinNet, error) {
 	}
 }
 
-// NewFlokicoindClient returns a flokicoind client using the current flokicoind
+// NewLokidClient returns a lokid client using the current lokid
 // connection. This allows us to share the same connection using multiple
 // clients.
-func (c *FlokicoindConn) NewFlokicoindClient() *FlokicoindClient {
-	return &FlokicoindClient{
+func (c *LokidConn) NewLokidClient() *LokidClient {
+	return &LokidClient{
 		quit: make(chan struct{}),
 
 		id: atomic.AddUint64(&c.rescanClientCounter, 1),
@@ -425,7 +425,7 @@ func (c *FlokicoindConn) NewFlokicoindClient() *FlokicoindClient {
 // in its notification delivery.
 //
 // NOTE: This function is safe for concurrent access.
-func (c *FlokicoindConn) AddClient(client *FlokicoindClient) {
+func (c *LokidConn) AddClient(client *LokidClient) {
 	c.rescanClientsMtx.Lock()
 	defer c.rescanClientsMtx.Unlock()
 
@@ -437,7 +437,7 @@ func (c *FlokicoindConn) AddClient(client *FlokicoindClient) {
 // transaction notifications from the chain connection.
 //
 // NOTE: This function is safe for concurrent access.
-func (c *FlokicoindConn) RemoveClient(id uint64) {
+func (c *LokidConn) RemoveClient(id uint64) {
 	c.rescanClientsMtx.Lock()
 	defer c.rescanClientsMtx.Unlock()
 
@@ -454,7 +454,7 @@ func isBlockPrunedErr(err error) bool {
 
 // GetBlock returns a raw block from the server given its hash. If the server
 // has already pruned the block, it will be retrieved from one of its peers.
-func (c *FlokicoindConn) GetBlock(hash *chainhash.Hash) (*wire.MsgBlock, error) {
+func (c *LokidConn) GetBlock(hash *chainhash.Hash) (*wire.MsgBlock, error) {
 	block, err := c.client.GetBlock(hash)
 	// Got the block from the backend successfully, return it.
 	if err == nil {
@@ -514,7 +514,7 @@ func (c *FlokicoindConn) GetBlock(hash *chainhash.Hash) (*wire.MsgBlock, error) 
 			return nil, err
 
 		case <-c.quit:
-			return nil, ErrFlokicoindClientShuttingDown
+			return nil, ErrLokidClientShuttingDown
 		}
 	}
 }

@@ -89,7 +89,7 @@ type PrunedBlockDispatcherConfig struct {
 
 	// NumTargetPeer represents the target number of peers we should
 	// maintain connections with. This exists to prevent establishing
-	// connections to all of the flokicoind's peers, which would be
+	// connections to all of the lokid's peers, which would be
 	// unnecessary and ineffecient.
 	NumTargetPeers int
 
@@ -129,7 +129,7 @@ type PrunedBlockDispatcherConfig struct {
 // PrunedBlockDispatcher enables a chain client to request blocks that the
 // server has already pruned. This is done by connecting to the server's full
 // node peers and querying them directly. Ideally, this is a capability
-// supported by the server, though this is not yet possible with flokicoind.
+// supported by the server, though this is not yet possible with lokid.
 type PrunedBlockDispatcher struct {
 	cfg PrunedBlockDispatcherConfig
 

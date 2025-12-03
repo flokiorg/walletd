@@ -21,15 +21,15 @@ const isCurrentDelta = 2 * time.Hour
 // TODO: Refactor each into a driver and use dynamic registration.
 func BackEnds() []string {
 	return []string{
-		"flokicoind",
+		"lokid",
 		"electrum",
 		"neutrino",
-		"flokicoind-rpc-polling",
+		"lokid-rpc-polling",
 	}
 }
 
 // Interface allows more than one backing blockchain source, such as a
-// flokicoind RPC chain server, or an SPV library, as long as we write a driver for
+// lokid RPC chain server, or an SPV library, as long as we write a driver for
 // it.
 type Interface interface {
 	Start() error

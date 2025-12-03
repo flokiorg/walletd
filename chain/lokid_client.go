@@ -20,15 +20,15 @@ import (
 )
 
 var (
-	// ErrFlokicoindClientShuttingDown is an error returned when we attempt
-	// to receive a notification for a specific item and the flokicoind client
+	// ErrLokidClientShuttingDown is an error returned when we attempt
+	// to receive a notification for a specific item and the lokid client
 	// is in the middle of shutting down.
-	ErrFlokicoindClientShuttingDown = errors.New("client is shutting down")
+	ErrLokidClientShuttingDown = errors.New("client is shutting down")
 )
 
-// FlokicoindClient represents a persistent client connection to a flokicoind server
+// LokidClient represents a persistent client connection to a lokid server
 // for information regarding the current best block chain.
-type FlokicoindClient struct {
+type LokidClient struct {
 	// notifyBlocks signals whether the client is sending block
 	// notifications to the caller. This must be used atomically.
 	notifyBlocks uint32
@@ -40,13 +40,13 @@ type FlokicoindClient struct {
 	// chain.
 	birthday time.Time
 
-	// id is the unique ID of this client assigned by the backing flokicoind
+	// id is the unique ID of this client assigned by the backing lokid
 	// connection.
 	id uint64
 
 	// chainConn is the backing client to our rescan client that contains
-	// the RPC and ZMQ connections to a flokicoind node.
-	chainConn *FlokicoindConn
+	// the RPC and ZMQ connections to a lokid node.
+	chainConn *LokidConn
 
 	// bestBlock keeps track of the tip of the current best chain.
 	bestBlockMtx sync.RWMutex
@@ -88,29 +88,29 @@ type FlokicoindClient struct {
 	notificationQueue *ConcurrentQueue
 
 	// txNtfns is a channel through which transaction events will be
-	// retrieved from the backing flokicoind connection, either via ZMQ or
+	// retrieved from the backing lokid connection, either via ZMQ or
 	// polling RPC.
 	txNtfns chan *wire.MsgTx
 
 	// blockNtfns is a channel through block events will be retrieved from
-	// the backing flokicoind connection, either via ZMQ or polling RPC.
+	// the backing lokid connection, either via ZMQ or polling RPC.
 	blockNtfns chan *wire.MsgBlock
 
 	quit chan struct{}
 	wg   sync.WaitGroup
 }
 
-// A compile-time check to ensure that FlokicoindClient satisfies the
+// A compile-time check to ensure that LokidClient satisfies the
 // chain.Interface interface.
-var _ Interface = (*FlokicoindClient)(nil)
+var _ Interface = (*LokidClient)(nil)
 
 // BackEnd returns the name of the driver.
-func (c *FlokicoindClient) BackEnd() string {
-	return "flokicoind"
+func (c *LokidClient) BackEnd() string {
+	return "lokid"
 }
 
-// GetBestBlock returns the highest block known to flokicoind.
-func (c *FlokicoindClient) GetBestBlock() (*chainhash.Hash, int32, error) {
+// GetBestBlock returns the highest block known to lokid.
+func (c *LokidClient) GetBestBlock() (*chainhash.Hash, int32, error) {
 	bcinfo, err := c.chainConn.client.GetBlockChainInfo()
 	if err != nil {
 		return nil, 0, err
@@ -126,7 +126,7 @@ func (c *FlokicoindClient) GetBestBlock() (*chainhash.Hash, int32, error) {
 
 // GetBlockHeight returns the height for the hash, if known, or returns an
 // error.
-func (c *FlokicoindClient) GetBlockHeight(hash *chainhash.Hash) (int32, error) {
+func (c *LokidClient) GetBlockHeight(hash *chainhash.Hash) (int32, error) {
 	header, err := c.chainConn.client.GetBlockHeaderVerbose(hash)
 	if err != nil {
 		return 0, err
@@ -136,31 +136,31 @@ func (c *FlokicoindClient) GetBlockHeight(hash *chainhash.Hash) (int32, error) {
 }
 
 // GetBlock returns a block from the hash.
-func (c *FlokicoindClient) GetBlock(hash *chainhash.Hash) (*wire.MsgBlock, error) {
+func (c *LokidClient) GetBlock(hash *chainhash.Hash) (*wire.MsgBlock, error) {
 	return c.chainConn.GetBlock(hash)
 }
 
 // GetBlockVerbose returns a verbose block from the hash.
-func (c *FlokicoindClient) GetBlockVerbose(
+func (c *LokidClient) GetBlockVerbose(
 	hash *chainhash.Hash) (*chainjson.GetBlockVerboseResult, error) {
 
 	return c.chainConn.client.GetBlockVerbose(hash)
 }
 
 // GetBlockHash returns a block hash from the height.
-func (c *FlokicoindClient) GetBlockHash(height int64) (*chainhash.Hash, error) {
+func (c *LokidClient) GetBlockHash(height int64) (*chainhash.Hash, error) {
 	return c.chainConn.client.GetBlockHash(height)
 }
 
 // GetBlockHeader returns a block header from the hash.
-func (c *FlokicoindClient) GetBlockHeader(
+func (c *LokidClient) GetBlockHeader(
 	hash *chainhash.Hash) (*wire.BlockHeader, error) {
 
 	return c.chainConn.client.GetBlockHeader(hash)
 }
 
 // GetBlockHeaderVerbose returns a block header from the hash.
-func (c *FlokicoindClient) GetBlockHeaderVerbose(
+func (c *LokidClient) GetBlockHeaderVerbose(
 	hash *chainhash.Hash) (*chainjson.GetBlockHeaderVerboseResult, error) {
 
 	return c.chainConn.client.GetBlockHeaderVerbose(hash)
@@ -168,7 +168,7 @@ func (c *FlokicoindClient) GetBlockHeaderVerbose(
 
 // IsCurrent returns whether the chain backend considers its view of the network
 // as "current".
-func (c *FlokicoindClient) IsCurrent() bool {
+func (c *LokidClient) IsCurrent() bool {
 	bestHash, _, err := c.GetBestBlock()
 	if err != nil {
 		return false
@@ -181,32 +181,32 @@ func (c *FlokicoindClient) IsCurrent() bool {
 }
 
 // GetRawTransactionVerbose returns a TxRawResult from the tx hash.
-func (c *FlokicoindClient) GetRawTransactionVerbose(hash *chainhash.Hash) (*chainjson.TxRawResult, error) {
+func (c *LokidClient) GetRawTransactionVerbose(hash *chainhash.Hash) (*chainjson.TxRawResult, error) {
 
 	return c.chainConn.client.GetRawTransactionVerbose(hash)
 }
 
 // GetRawTransaction returns a `chainutil.Tx` from the tx hash.
-func (c *FlokicoindClient) GetRawTransaction(
+func (c *LokidClient) GetRawTransaction(
 	hash *chainhash.Hash) (*chainutil.Tx, error) {
 
 	return c.chainConn.client.GetRawTransaction(hash)
 }
 
 // GetRawMempool returns the raw mempool.
-func (c *FlokicoindClient) GetRawMempool() ([]*chainhash.Hash, error) {
+func (c *LokidClient) GetRawMempool() ([]*chainhash.Hash, error) {
 	return c.chainConn.client.GetRawMempool()
 }
 
 // GetTxOut returns a txout from the outpoint info provided.
-func (c *FlokicoindClient) GetTxOut(txHash *chainhash.Hash, index uint32,
+func (c *LokidClient) GetTxOut(txHash *chainhash.Hash, index uint32,
 	mempool bool) (*chainjson.GetTxOutResult, error) {
 
 	return c.chainConn.client.GetTxOut(txHash, index, mempool)
 }
 
-// SendRawTransaction sends a raw transaction via flokicoind.
-func (c *FlokicoindClient) SendRawTransaction(tx *wire.MsgTx,
+// SendRawTransaction sends a raw transaction via lokid.
+func (c *LokidClient) SendRawTransaction(tx *wire.MsgTx,
 	allowHighFees bool) (*chainhash.Hash, error) {
 
 	txid, err := c.chainConn.client.SendRawTransaction(tx, allowHighFees)
@@ -219,8 +219,8 @@ func (c *FlokicoindClient) SendRawTransaction(tx *wire.MsgTx,
 
 // MapRPCErr takes an error returned from calling RPC methods from various
 // chain backends and maps it to an defined error here.
-func (c *FlokicoindClient) MapRPCErr(rpcErr error) error {
-	// Try to match it against flokicoind's error.
+func (c *LokidClient) MapRPCErr(rpcErr error) error {
+	// Try to match it against lokid's error.
 	for i := uint32(0); i < uint32(errSentinel); i++ {
 		err := RPCErr(i)
 		if matchErrStr(rpcErr, err.Error()) {
@@ -228,11 +228,11 @@ func (c *FlokicoindClient) MapRPCErr(rpcErr error) error {
 		}
 	}
 
-	// Perhaps the backend is a newer version of flokicoind, try to match it
+	// Perhaps the backend is a newer version of lokid, try to match it
 	// against the v28.0 and later errors.
-	for flokicoindErr, matchedErr := range Flokicoind28ErrMap {
-		// Match it against flokicoind's error.
-		if matchErrStr(rpcErr, flokicoindErr) {
+	for lokidErr, matchedErr := range Lokid28ErrMap {
+		// Match it against lokid's error.
+		if matchErrStr(rpcErr, lokidErr) {
 			return matchedErr
 		}
 	}
@@ -245,7 +245,7 @@ func (c *FlokicoindClient) MapRPCErr(rpcErr error) error {
 // if raw transaction(s) would be accepted by mempool.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) TestMempoolAccept(txns []*wire.MsgTx,
+func (c *LokidClient) TestMempoolAccept(txns []*wire.MsgTx,
 	maxFeeRate float64) ([]*chainjson.TestMempoolAcceptResult, error) {
 
 	return c.chainConn.client.TestMempoolAccept(txns, maxFeeRate)
@@ -254,7 +254,7 @@ func (c *FlokicoindClient) TestMempoolAccept(txns []*wire.MsgTx,
 // Notifications returns a channel to retrieve notifications from.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) Notifications() <-chan interface{} {
+func (c *LokidClient) Notifications() <-chan interface{} {
 	return c.notificationQueue.ChanOut()
 }
 
@@ -262,7 +262,7 @@ func (c *FlokicoindClient) Notifications() <-chan interface{} {
 // transaction pays to any of the given addresses.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) NotifyReceived(addrs []chainutil.Address) error {
+func (c *LokidClient) NotifyReceived(addrs []chainutil.Address) error {
 	_ = c.NotifyBlocks()
 
 	c.updateWatchedFilters(addrs)
@@ -272,7 +272,7 @@ func (c *FlokicoindClient) NotifyReceived(addrs []chainutil.Address) error {
 
 // NotifySpent allows the chain backend to notify the caller whenever a
 // transaction spends any of the given outpoints.
-func (c *FlokicoindClient) NotifySpent(outPoints []*wire.OutPoint) error {
+func (c *LokidClient) NotifySpent(outPoints []*wire.OutPoint) error {
 
 	// Send the outpoints so the client will cache them.
 	c.updateWatchedFilters(outPoints)
@@ -317,7 +317,7 @@ func (c *FlokicoindClient) NotifySpent(outPoints []*wire.OutPoint) error {
 
 // NotifyTx allows the chain backend to notify the caller whenever any of the
 // given transactions confirm within the chain.
-func (c *FlokicoindClient) NotifyTx(txids []chainhash.Hash) error {
+func (c *LokidClient) NotifyTx(txids []chainhash.Hash) error {
 
 	c.updateWatchedFilters(txids)
 
@@ -330,7 +330,7 @@ func (c *FlokicoindClient) NotifyTx(txids []chainhash.Hash) error {
 // is connected or disconnected.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) NotifyBlocks() error {
+func (c *LokidClient) NotifyBlocks() error {
 	// We'll guard the goroutine being spawned below by the notifyBlocks
 	// variable we'll use atomically. We'll make sure to reset it in case of
 	// a failure before spawning the goroutine so that it can be retried.
@@ -360,7 +360,7 @@ func (c *FlokicoindClient) NotifyBlocks() error {
 	c.bestBlockMtx.Unlock()
 
 	// Include the client in the set of rescan clients of the backing
-	// flokicoind connection in order to receive ZMQ event notifications for
+	// lokid connection in order to receive ZMQ event notifications for
 	// new blocks and transactions.
 	c.chainConn.AddClient(c)
 
@@ -372,7 +372,7 @@ func (c *FlokicoindClient) NotifyBlocks() error {
 
 // shouldNotifyBlocks determines whether the client should send block
 // notifications to the caller.
-func (c *FlokicoindClient) shouldNotifyBlocks() bool {
+func (c *LokidClient) shouldNotifyBlocks() bool {
 	return atomic.LoadUint32(&c.notifyBlocks) == 1
 }
 
@@ -388,7 +388,7 @@ func (c *FlokicoindClient) shouldNotifyBlocks() bool {
 //	map[wire.OutPoint]chainutil.Address
 //	[]chainhash.Hash
 //	[]*chainhash.Hash
-func (c *FlokicoindClient) LoadTxFilter(reset bool, filters ...interface{}) error {
+func (c *LokidClient) LoadTxFilter(reset bool, filters ...interface{}) error {
 	if reset {
 		c.resetWatchedFilters()
 	}
@@ -417,7 +417,7 @@ func (c *FlokicoindClient) LoadTxFilter(reset bool, filters ...interface{}) erro
 
 // RescanBlocks rescans any blocks passed, returning only the blocks that
 // matched as []chainjson.BlockDetails.
-func (c *FlokicoindClient) RescanBlocks(
+func (c *LokidClient) RescanBlocks(
 	blockHashes []chainhash.Hash) ([]chainjson.RescannedBlock, error) {
 
 	rescannedBlocks := make([]chainjson.RescannedBlock, 0, len(blockHashes))
@@ -426,7 +426,7 @@ func (c *FlokicoindClient) RescanBlocks(
 
 		header, err := c.GetBlockHeaderVerbose(&hash)
 		if err != nil {
-			log.Warnf("Unable to get header %s from flokicoind: %s",
+			log.Warnf("Unable to get header %s from lokid: %s",
 				hash, err)
 			continue
 		}
@@ -439,7 +439,7 @@ func (c *FlokicoindClient) RescanBlocks(
 
 		block, err := c.GetBlock(&hash)
 		if err != nil {
-			log.Warnf("Unable to get block %s from flokicoind: %s",
+			log.Warnf("Unable to get block %s from lokid: %s",
 				hash, err)
 			continue
 		}
@@ -465,7 +465,7 @@ func (c *FlokicoindClient) RescanBlocks(
 
 // Rescan rescans from the block with the given hash until the current block,
 // after adding the passed addresses and outpoints to the client's watch list.
-func (c *FlokicoindClient) Rescan(blockHash *chainhash.Hash,
+func (c *LokidClient) Rescan(blockHash *chainhash.Hash,
 	addresses []chainutil.Address, outPoints map[wire.OutPoint]chainutil.Address) error {
 
 	// A block hash is required to use as the starting point of the rescan.
@@ -491,12 +491,12 @@ func (c *FlokicoindClient) Rescan(blockHash *chainhash.Hash,
 	return nil
 }
 
-// Start initializes the flokicoind rescan client using the backing flokicoind
+// Start initializes the lokid rescan client using the backing lokid
 // connection and starts all goroutines necessary in order to process rescans
 // and ZMQ notifications.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) Start() error {
+func (c *LokidClient) Start() error {
 	if !atomic.CompareAndSwapInt32(&c.started, 0, 1) {
 		return nil
 	}
@@ -529,18 +529,18 @@ func (c *FlokicoindClient) Start() error {
 	return nil
 }
 
-// Stop stops the flokicoind rescan client from processing rescans and ZMQ
+// Stop stops the lokid rescan client from processing rescans and ZMQ
 // notifications.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) Stop() {
+func (c *LokidClient) Stop() {
 	if !atomic.CompareAndSwapInt32(&c.stopped, 0, 1) {
 		return
 	}
 
 	close(c.quit)
 
-	// Remove this client's reference from the flokicoind connection to
+	// Remove this client's reference from the lokid connection to
 	// prevent sending notifications to it after it's been stopped.
 	c.chainConn.RemoveClient(c.id)
 
@@ -551,15 +551,15 @@ func (c *FlokicoindClient) Stop() {
 // handlers have exited.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) WaitForShutdown() {
+func (c *LokidClient) WaitForShutdown() {
 	c.wg.Wait()
 }
 
 // ntfnHandler handles the logic to retrieve ZMQ notifications from the backing
-// flokicoind connection.
+// lokid connection.
 //
 // NOTE: This must be called as a goroutine.
-func (c *FlokicoindClient) ntfnHandler() {
+func (c *LokidClient) ntfnHandler() {
 	defer c.wg.Done()
 
 	for {
@@ -609,17 +609,17 @@ func (c *FlokicoindClient) ntfnHandler() {
 	}
 }
 
-// SetBirthday sets the birthday of the flokicoind rescan client.
+// SetBirthday sets the birthday of the lokid rescan client.
 //
 // NOTE: This should be done before the client has been started in order for it
 // to properly carry its duties.
-func (c *FlokicoindClient) SetBirthday(t time.Time) {
+func (c *LokidClient) SetBirthday(t time.Time) {
 	c.birthday = t
 }
 
 // BlockStamp returns the latest block notified by the client, or an error
 // if the client has been shut down.
-func (c *FlokicoindClient) BlockStamp() (*waddrmgr.BlockStamp, error) {
+func (c *LokidClient) BlockStamp() (*waddrmgr.BlockStamp, error) {
 	c.bestBlockMtx.RLock()
 	bestBlock := c.bestBlock
 	c.bestBlockMtx.RUnlock()
@@ -629,7 +629,7 @@ func (c *FlokicoindClient) BlockStamp() (*waddrmgr.BlockStamp, error) {
 
 // onBlockConnected is a callback that's executed whenever a new block has been
 // detected. This will queue a BlockConnected notification to the caller.
-func (c *FlokicoindClient) onBlockConnected(hash *chainhash.Hash, height int32,
+func (c *LokidClient) onBlockConnected(hash *chainhash.Hash, height int32,
 	timestamp time.Time) {
 
 	if c.shouldNotifyBlocks() {
@@ -651,7 +651,7 @@ func (c *FlokicoindClient) onBlockConnected(hash *chainhash.Hash, height int32,
 // onBlockConnected, but it also includes a list of the relevant transactions
 // found within the block being connected. This will queue a
 // FilteredBlockConnected notification to the caller.
-func (c *FlokicoindClient) onFilteredBlockConnected(height int32,
+func (c *LokidClient) onFilteredBlockConnected(height int32,
 	header *wire.BlockHeader, relevantTxs []*wtxmgr.TxRecord) {
 
 	if c.shouldNotifyBlocks() {
@@ -674,7 +674,7 @@ func (c *FlokicoindClient) onFilteredBlockConnected(height int32,
 // onBlockDisconnected is a callback that's executed whenever a block has been
 // disconnected. This will queue a BlockDisconnected notification to the caller
 // with the details of the block being disconnected.
-func (c *FlokicoindClient) onBlockDisconnected(hash *chainhash.Hash, height int32,
+func (c *LokidClient) onBlockDisconnected(hash *chainhash.Hash, height int32,
 	timestamp time.Time) {
 
 	if c.shouldNotifyBlocks() {
@@ -695,7 +695,7 @@ func (c *FlokicoindClient) onBlockDisconnected(hash *chainhash.Hash, height int3
 // to the caller. This means that the transaction matched a specific item in the
 // client's different filters. This will queue a RelevantTx notification to the
 // caller.
-func (c *FlokicoindClient) onRelevantTx(tx *wtxmgr.TxRecord,
+func (c *LokidClient) onRelevantTx(tx *wtxmgr.TxRecord,
 	blockDetails *chainjson.BlockDetails) {
 
 	block, err := parseBlock(blockDetails)
@@ -717,7 +717,7 @@ func (c *FlokicoindClient) onRelevantTx(tx *wtxmgr.TxRecord,
 // onRescanProgress is a callback that's executed whenever a rescan is in
 // progress. This will queue a RescanProgress notification to the caller with
 // the current rescan progress details.
-func (c *FlokicoindClient) onRescanProgress(hash *chainhash.Hash, height int32,
+func (c *LokidClient) onRescanProgress(hash *chainhash.Hash, height int32,
 	timestamp time.Time) {
 
 	select {
@@ -733,7 +733,7 @@ func (c *FlokicoindClient) onRescanProgress(hash *chainhash.Hash, height int32,
 // onRescanFinished is a callback that's executed whenever a rescan has
 // finished. This will queue a RescanFinished notification to the caller with
 // the details of the last block in the range of the rescan.
-func (c *FlokicoindClient) onRescanFinished(hash *chainhash.Hash, height int32,
+func (c *LokidClient) onRescanFinished(hash *chainhash.Hash, height int32,
 	timestamp time.Time) {
 
 	select {
@@ -749,7 +749,7 @@ func (c *FlokicoindClient) onRescanFinished(hash *chainhash.Hash, height int32,
 // reorg processes a reorganization during chain synchronization. This is
 // separate from a rescan's handling of a reorg. This will rewind back until it
 // finds a common ancestor and notify all the new blocks since then.
-func (c *FlokicoindClient) reorg(currentBlock waddrmgr.BlockStamp,
+func (c *LokidClient) reorg(currentBlock waddrmgr.BlockStamp,
 	reorgBlock *wire.MsgBlock) error {
 
 	// Retrieve the best known height based on the block which caused the
@@ -882,7 +882,7 @@ func (c *FlokicoindClient) reorg(currentBlock waddrmgr.BlockStamp,
 // returned response will be nil.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *FlokicoindClient) FilterBlocks(
+func (c *LokidClient) FilterBlocks(
 	req *FilterBlocksRequest) (*FilterBlocksResponse, error) {
 
 	blockFilterer := NewBlockFilterer(c.chainConn.cfg.ChainParams, req)
@@ -923,12 +923,12 @@ func (c *FlokicoindClient) FilterBlocks(
 	return nil, nil
 }
 
-// rescan performs a rescan of the chain using a flokicoind backend, from the
+// rescan performs a rescan of the chain using a lokid backend, from the
 // specified hash to the best known hash, while watching out for reorgs that
 // happen during the rescan. It uses the addresses and outputs being tracked by
 // the client in the watch list. This is called only within a queue processing
 // loop.
-func (c *FlokicoindClient) rescan(start chainhash.Hash) error {
+func (c *LokidClient) rescan(start chainhash.Hash) error {
 	// We start by getting the best already processed block. We only use
 	// the height, as the hash can change during a reorganization, which we
 	// catch by testing connectivity from known blocks to the previous
@@ -963,7 +963,7 @@ func (c *FlokicoindClient) rescan(start chainhash.Hash) error {
 	log.Debugf("Rescanning from block height %v to %v",
 		previousHeader.Height+1, bestBlock.Height)
 
-	// Cycle through all of the blocks known to flokicoind, being mindful of
+	// Cycle through all of the blocks known to lokid, being mindful of
 	// reorgs.
 	for i := previousHeader.Height + 1; i <= bestBlock.Height; i++ {
 		hash, err := c.GetBlockHash(int64(i))
@@ -1043,7 +1043,7 @@ func (c *FlokicoindClient) rescan(start chainhash.Hash) error {
 					}
 				}
 			} else {
-				// Otherwise, we get it from flokicoind.
+				// Otherwise, we get it from lokid.
 				previousHash, err = chainhash.NewHashFromStr(
 					previousHeader.PreviousHash,
 				)
@@ -1107,7 +1107,7 @@ func (c *FlokicoindClient) rescan(start chainhash.Hash) error {
 
 // shouldFilterBlock determines whether we should filter a block based on its
 // timestamp or our watch list.
-func (c *FlokicoindClient) shouldFilterBlock(blockTimestamp time.Time) bool {
+func (c *LokidClient) shouldFilterBlock(blockTimestamp time.Time) bool {
 	c.watchMtx.RLock()
 	hasEmptyFilter := len(c.watchedAddresses) == 0 &&
 		len(c.watchedOutPoints) == 0 && len(c.watchedTxs) == 0
@@ -1118,7 +1118,7 @@ func (c *FlokicoindClient) shouldFilterBlock(blockTimestamp time.Time) bool {
 
 // filterBlock filters a block for watched outpoints and addresses, and returns
 // any matching transactions, sending notifications along the way.
-func (c *FlokicoindClient) filterBlock(block *wire.MsgBlock, height int32,
+func (c *LokidClient) filterBlock(block *wire.MsgBlock, height int32,
 	notify bool) []*wtxmgr.TxRecord {
 
 	// If this block happened before the client's birthday or we have
@@ -1194,7 +1194,7 @@ func (c *FlokicoindClient) filterBlock(block *wire.MsgBlock, height int32,
 
 // filterTx determines whether a transaction is relevant to the client by
 // inspecting the client's different filters.
-func (c *FlokicoindClient) filterTx(txDetails *chainutil.Tx,
+func (c *LokidClient) filterTx(txDetails *chainutil.Tx,
 	blockDetails *chainjson.BlockDetails, notify bool) (bool,
 	*wtxmgr.TxRecord, error) {
 
@@ -1327,7 +1327,7 @@ func (c *FlokicoindClient) filterTx(txDetails *chainutil.Tx,
 
 // LookupInputMempoolSpend returns the transaction hash and true if the given
 // input is found being spent in mempool, otherwise it returns nil and false.
-func (c *FlokicoindClient) LookupInputMempoolSpend(op wire.OutPoint) (
+func (c *LokidClient) LookupInputMempoolSpend(op wire.OutPoint) (
 	chainhash.Hash, bool) {
 
 	return c.chainConn.events.LookupInputSpend(op)
@@ -1335,7 +1335,7 @@ func (c *FlokicoindClient) LookupInputMempoolSpend(op wire.OutPoint) (
 
 // resetWatchedFilters empties the maps used to track outpoints, addresses, and
 // txns.
-func (c *FlokicoindClient) resetWatchedFilters() {
+func (c *LokidClient) resetWatchedFilters() {
 	c.watchMtx.Lock()
 	defer c.watchMtx.Unlock()
 
@@ -1346,7 +1346,7 @@ func (c *FlokicoindClient) resetWatchedFilters() {
 
 // updateWatchedFilters is used to update the internal maps that track the
 // watched addresses, outpoints, or txns.
-func (c *FlokicoindClient) updateWatchedFilters(update any) {
+func (c *LokidClient) updateWatchedFilters(update any) {
 	c.watchMtx.Lock()
 	defer c.watchMtx.Unlock()
 

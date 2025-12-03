@@ -24,10 +24,10 @@ const (
 // bitcoindRPCPollingEvents.
 type PollingConfig struct {
 	// BlockPollingInterval is the interval that will be used to poll
-	// flokicoind for new blocks.
+	// lokid for new blocks.
 	BlockPollingInterval time.Duration
 
-	// TxPollingInterval is the interval that will be used to poll flokicoind
+	// TxPollingInterval is the interval that will be used to poll lokid
 	// for new transactions. If a jitter factor is configed, it will be
 	// applied to this value to provide randomness in the range,
 	// - max: TxPollingInterval * (1 + TxPollingIntervalJitter)
@@ -40,7 +40,7 @@ type PollingConfig struct {
 	TxPollingIntervalJitter float64
 
 	// RPCBatchSize defines the number of RPC requests to be batches before
-	// sending them to the flokicoind node.
+	// sending them to the lokid node.
 	RPCBatchSize uint32
 
 	// RPCBatchInterval defines the time to wait before attempting the next
@@ -49,7 +49,7 @@ type PollingConfig struct {
 }
 
 // bitcoindRPCPollingEvents delivers block and transaction notifications that
-// it gets by polling flokicoind's rpc interface at regular intervals.
+// it gets by polling lokid's rpc interface at regular intervals.
 type bitcoindRPCPollingEvents struct {
 	cfg *PollingConfig
 
@@ -72,11 +72,11 @@ type bitcoindRPCPollingEvents struct {
 
 // Ensure bitcoindRPCPollingEvents implements the FlokicoinEvents interface at
 // compile time.
-var _ FlokicoindEvents = (*bitcoindRPCPollingEvents)(nil)
+var _ LokidEvents = (*bitcoindRPCPollingEvents)(nil)
 
-// newFlokicoindRPCPollingEvents instantiates a new bitcoindRPCPollingEvents
+// newLokidRPCPollingEvents instantiates a new bitcoindRPCPollingEvents
 // object.
-func newFlokicoindRPCPollingEvents(cfg *PollingConfig, client *rpcclient.Client,
+func newLokidRPCPollingEvents(cfg *PollingConfig, client *rpcclient.Client,
 	bClient batchClient, hasRPC bool) *bitcoindRPCPollingEvents {
 
 	if cfg.BlockPollingInterval == 0 {
@@ -187,7 +187,7 @@ func (b *bitcoindRPCPollingEvents) blockEventHandlerRPC(startHeight int32) {
 	defer ticker.Stop()
 
 	height := startHeight
-	log.Infof("Started polling for new flokicoind blocks via RPC at "+
+	log.Infof("Started polling for new lokid blocks via RPC at "+
 		"height %d", height)
 
 	for {
@@ -263,7 +263,7 @@ func (b *bitcoindRPCPollingEvents) txEventHandlerRPC() {
 	// the initial mempool load.
 	b.mempool.WaitForInit()
 
-	log.Info("Started polling mempool for new flokicoind transactions via RPC.")
+	log.Info("Started polling mempool for new lokid transactions via RPC.")
 
 	// Create a ticker that fires randomly.
 	rand.Seed(time.Now().UnixNano())

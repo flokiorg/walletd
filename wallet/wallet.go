@@ -230,7 +230,7 @@ func (w *Wallet) SynchronizeRPC(chainClient chain.Interface) {
 	switch cc := chainClient.(type) {
 	case *chain.NeutrinoClient:
 		cc.SetStartTime(w.Manager.Birthday())
-	case *chain.FlokicoindClient:
+	case *chain.LokidClient:
 		cc.SetBirthday(w.Manager.Birthday())
 	case *chain.ElectrumClient:
 		cc.SetStartTime(w.Manager.Birthday())
@@ -1759,7 +1759,7 @@ func (w *Wallet) CalculateAccountBalances(account uint32, confirms int32) (Balan
 // CurrentAddress gets the most recently requested Flokicoin payment address
 // from a wallet for a particular key-chain scope.  If the address has already
 // been used (there is at least one transaction spending to it in the
-// blockchain or flokicoind mempool), the next chained address is returned.
+// blockchain or lokid mempool), the next chained address is returned.
 func (w *Wallet) CurrentAddress(account uint32, scope waddrmgr.KeyScope) (chainutil.Address, error) {
 	chainClient, err := w.requireChainClient()
 	if err != nil {
@@ -2505,7 +2505,7 @@ func (w *Wallet) GetTransactions(startBlock, endBlock *BlockIdentifier,
 					return nil, err
 				}
 				start = startHeader.Height
-			case *chain.FlokicoindClient:
+			case *chain.LokidClient:
 				var err error
 				start, err = client.GetBlockHeight(startBlock.hash)
 				if err != nil {
@@ -2536,7 +2536,7 @@ func (w *Wallet) GetTransactions(startBlock, endBlock *BlockIdentifier,
 					return nil, err
 				}
 				end = endHeader.Height
-			case *chain.FlokicoindClient:
+			case *chain.LokidClient:
 				var err error
 				start, err = client.GetBlockHeight(endBlock.hash)
 				if err != nil {

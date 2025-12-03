@@ -818,25 +818,25 @@ out:
 
 // MapRPCErr takes an error returned from calling RPC methods from various
 // chain backends and maps it to an defined error here. It uses the
-// `FlokicoindErrMap`, whose keys are flokicoind error strings and values are errors made
-// from flokicoind error strings.
+// `LokidErrMap`, whose keys are lokid error strings and values are errors made
+// from lokid error strings.
 //
-// NOTE: we assume neutrino shares the same error strings as flokicoind.
+// NOTE: we assume neutrino shares the same error strings as lokid.
 func (s *NeutrinoClient) MapRPCErr(rpcErr error) error {
 	// Iterate the map and find the matching error.
-	for flokicoindErr, matchedErr := range FlokicoindErrMap {
-		// Match it against flokicoind's error.
-		if matchErrStr(rpcErr, flokicoindErr) {
+	for lokidErr, matchedErr := range LokidErrMap {
+		// Match it against lokid's error.
+		if matchErrStr(rpcErr, lokidErr) {
 			return matchedErr
 		}
 	}
 
 	// Neutrino doesn't support version check, we will try to match the
-	// errors from the older version of `flokicoind`, which are also used by
+	// errors from the older version of `lokid`, which are also used by
 	// neutrino.
-	for flokicoindErr, matchedErr := range FlokicoindErrMapPre2402 {
-		// Match it against flokicoind's error.
-		if matchErrStr(rpcErr, flokicoindErr) {
+	for lokidErr, matchedErr := range LokidErrMapPre2402 {
+		// Match it against lokid's error.
+		if matchErrStr(rpcErr, lokidErr) {
 			return matchedErr
 		}
 	}

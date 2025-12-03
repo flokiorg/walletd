@@ -39,7 +39,7 @@ func (w *Wallet) handleChainNotifications() {
 		// TODO(aakselrod): There's a race condition here, which
 		// happens when a reorg occurs between the
 		// rescanProgress notification and the last GetBlockHash
-		// call. The solution when using flokicoind is to make flokicoind
+		// call. The solution when using lokid is to make lokid
 		// send blockconnected notifications with each block
 		// the way Neutrino does, and get rid of the loop. The
 		// other alternative is to check the final hash and,

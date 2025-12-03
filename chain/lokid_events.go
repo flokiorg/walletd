@@ -9,9 +9,9 @@ import (
 	"github.com/flokiorg/go-flokicoin/wire"
 )
 
-// FlokicoindEvents is the interface that must be satisfied by any type that
-// serves flokicoind block and transactions events.
-type FlokicoindEvents interface {
+// LokidEvents is the interface that must be satisfied by any type that
+// serves lokid block and transactions events.
+type LokidEvents interface {
 	// TxNotifications will return a channel which will deliver new
 	// transactions.
 	TxNotifications() <-chan *wire.MsgTx
@@ -34,17 +34,17 @@ type FlokicoindEvents interface {
 // Ensure rpcclient.Client implements the rpcClient interface at compile time.
 var _ batchClient = (*rpcclient.Client)(nil)
 
-// NewFlokicoindEventSubscriber initialises a new FlokicoinEvents object impl
+// NewLokidEventSubscriber initialises a new FlokicoinEvents object impl
 // depending on the config passed.
-func NewFlokicoindEventSubscriber(cfg *FlokicoindConfig, client *rpcclient.Client,
-	bClient batchClient) (FlokicoindEvents, error) {
+func NewLokidEventSubscriber(cfg *LokidConfig, client *rpcclient.Client,
+	bClient batchClient) (LokidEvents, error) {
 
 	if cfg.PollingConfig != nil && cfg.ZMQConfig != nil {
 		return nil, fmt.Errorf("either PollingConfig or ZMQConfig " +
 			"should be specified, not both")
 	}
 
-	// Check if the flokicoind node is on a version that has the
+	// Check if the lokid node is on a version that has the
 	// gettxspendingprevout RPC. If it does, then we don't need to maintain
 	// a mempool for ZMQ clients and can maintain a smaller mempool for RPC
 	// clients.
@@ -60,7 +60,7 @@ func NewFlokicoindEventSubscriber(cfg *FlokicoindConfig, client *rpcclient.Clien
 				"subscriptions")
 		}
 
-		pollingEvents := newFlokicoindRPCPollingEvents(
+		pollingEvents := newLokidRPCPollingEvents(
 			cfg.PollingConfig, client, bClient, hasRPC,
 		)
 
@@ -72,13 +72,13 @@ func NewFlokicoindEventSubscriber(cfg *FlokicoindConfig, client *rpcclient.Clien
 			"rpcpolling is disabled")
 	}
 
-	return newFlokicoindZMQEvents(cfg.ZMQConfig, client, bClient, hasRPC)
+	return newLokidZMQEvents(cfg.ZMQConfig, client, bClient, hasRPC)
 }
 
-// hasSpendingPrevoutRPC returns whether or not the flokicoind has the newer
+// hasSpendingPrevoutRPC returns whether or not the lokid has the newer
 // gettxspendingprevout RPC.
 func hasSpendingPrevoutRPC(client *rpcclient.Client) (bool, error) {
-	// Fetch the flokicoind version.
+	// Fetch the lokid version.
 	resp, err := client.RawRequest("getnetworkinfo", nil)
 	if err != nil {
 		return false, err
@@ -92,7 +92,7 @@ func hasSpendingPrevoutRPC(client *rpcclient.Client) (bool, error) {
 		return false, err
 	}
 
-	// Flokicoind returns a single value representing the semantic version:
+	// Lokid returns a single value representing the semantic version:
 	// 10000 * CLIENT_VERSION_MAJOR + 100 * CLIENT_VERSION_MINOR
 	// + 1 * CLIENT_VERSION_BUILD
 	//

@@ -200,7 +200,7 @@ func NewRPCClientWithConfig(cfg *RPCClientConfig) (*RPCClient, error) {
 
 // BackEnd returns the name of the driver.
 func (c *RPCClient) BackEnd() string {
-	return "flokicoind"
+	return "lokid"
 }
 
 // Start attempts to establish a client connection with the remote server.
@@ -584,19 +584,19 @@ func (c *RPCClient) LookupInputMempoolSpend(op wire.OutPoint) (
 
 // MapRPCErr takes an error returned from calling RPC methods from various
 // chain backends and maps it to an defined error here. It uses the
-// `FlokicoindErrMap`, whose keys are flokicoind error strings and values are errors made
-// from flokicoind error strings.
+// `LokidErrMap`, whose keys are lokid error strings and values are errors made
+// from lokid error strings.
 func (c *RPCClient) MapRPCErr(rpcErr error) error {
 	// Iterate the map and find the matching error.
-	for flokicoindErr, matchedErr := range FlokicoindErrMap {
-		// Match it against flokicoind's error.
-		if matchErrStr(rpcErr, flokicoindErr) {
+	for lokidErr, matchedErr := range LokidErrMap {
+		// Match it against lokid's error.
+		if matchErrStr(rpcErr, lokidErr) {
 			return matchedErr
 		}
 	}
 
 	// If no matching error is found, we try to match it to an older
-	// version of `flokicoind`.
+	// version of `lokid`.
 	//
 	// Get the backend's version.
 	backend, bErr := c.BackendVersion()
@@ -616,10 +616,10 @@ func (c *RPCClient) MapRPCErr(rpcErr error) error {
 	// supported.
 	if !backend.SupportTestMempoolAccept() {
 		// If the backend is older than v0.24.2, we will try to match
-		// the error to the older version of `flokicoind`.
-		for flokicoindErr, matchedErr := range FlokicoindErrMapPre2402 {
-			// Match it against flokicoind's error.
-			if matchErrStr(rpcErr, flokicoindErr) {
+		// the error to the older version of `lokid`.
+		for lokidErr, matchedErr := range LokidErrMapPre2402 {
+			// Match it against lokid's error.
+			if matchErrStr(rpcErr, lokidErr) {
 				return matchedErr
 			}
 		}
@@ -629,7 +629,7 @@ func (c *RPCClient) MapRPCErr(rpcErr error) error {
 	return fmt.Errorf("%w: %v", ErrUndefined, rpcErr)
 }
 
-// SendRawTransaction sends a raw transaction via flokicoind.
+// SendRawTransaction sends a raw transaction via lokid.
 func (c *RPCClient) SendRawTransaction(tx *wire.MsgTx,
 	allowHighFees bool) (*chainhash.Hash, error) {
 

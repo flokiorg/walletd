@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	// txNotFoundErr is an error returned from flokicoind's
+	// txNotFoundErr is an error returned from lokid's
 	// `getrawtransaction` RPC when the requested txid cannot be found.
 	// https://github.com/bitcoin/bitcoin/blob/fa05a726c225dc65dee79367bb67f099ae4f99e6/src/rpc/rawtransaction.cpp#L366
 	txNotFoundErr = "-5: No such mempool"
 
 	// DefaultGetRawTxBatchSize specifies the default number of requests to
-	// be batched before sending them to the flokicoind client.
+	// be batched before sending them to the lokid client.
 	DefaultGetRawTxBatchSize = 1000
 
 	// DefaultBatchWaitInterval defines the default time to sleep between
@@ -135,7 +135,7 @@ type mempoolConfig struct {
 	client batchClient
 
 	// getRawTxBatchSize specifies the number of getrawtransaction requests
-	// to be batched before sending them to the flokicoind client.
+	// to be batched before sending them to the lokid client.
 	getRawTxBatchSize uint32
 
 	// batchWaitInterval defines the default time to sleep between each
@@ -156,7 +156,7 @@ type mempoolConfig struct {
 	// can remove this hack.
 	rawTxReceiver func(chainhash.Hash, getRawTxReceiver) *chainutil.Tx
 
-	// hasPrevoutRPC is set when the flokicoind version is >= 24.0.0, in
+	// hasPrevoutRPC is set when the lokid version is >= 24.0.0, in
 	// which `gettxspendingprevout` can be used to fetch mempool spent for
 	// a given input so there's no need to create the `inputs` map used in
 	// `mempool` here.
@@ -172,7 +172,7 @@ func newMempool(cfg *mempoolConfig) *mempool {
 		quit:    make(chan struct{}),
 	}
 
-	// Init the `inputs` map if the flokicoind version doesn't support
+	// Init the `inputs` map if the lokid version doesn't support
 	// `gettxspendingprevout`.
 	if !cfg.hasPrevoutRPC {
 		m.inputs = newCachedInputs()
@@ -247,7 +247,7 @@ func (m *mempool) containsTx(hash chainhash.Hash) bool {
 //
 // NOTE: must be used inside a lock.
 func (m *mempool) containsInput(op wire.OutPoint) (chainhash.Hash, bool) {
-	// TODO(yy): port `getprevout` to flokicoind and use it here?
+	// TODO(yy): port `getprevout` to lokid and use it here?
 	if m.inputs == nil {
 		return chainhash.Hash{}, false
 	}
@@ -524,7 +524,7 @@ func (m *mempool) batchGetRawTxes(txids []*chainhash.Hash,
 	}
 
 	// processBatch asks the batch client to send its cached requests to
-	// flokicoind and waits for all the responses to return. Each time a
+	// lokid and waits for all the responses to return. Each time a
 	// response is received, it will be used to update the local mempool
 	// state and conditionally saved to a slice that will be returned.
 	processBatch := func(results txRecievers) error {
@@ -609,8 +609,8 @@ func (m *mempool) batchGetRawTxes(txids []*chainhash.Hash,
 // returned since we can't do anything about it here in the mempool.
 //
 // NOTE: if `txindex` is not enabled, `GetRawTransactionAsync` will only look
-// for the txid in flokicoind's mempool. If the tx is replaced, confirmed, or not
-// yet included in flokicoind's mempool, the error txNotFoundErr will be
+// for the txid in lokid's mempool. If the tx is replaced, confirmed, or not
+// yet included in lokid's mempool, the error txNotFoundErr will be
 // returned.
 func getRawTxIgnoreErr(txid chainhash.Hash,
 	rawTx getRawTxReceiver) *chainutil.Tx {
