@@ -147,7 +147,7 @@ func unimplemented(interface{}, *wallet.Wallet) (interface{}, error) {
 	}
 }
 
-// unsupported handles a standard flokicoind RPC request which is
+// unsupported handles a standard lokid RPC request which is
 // unsupported by walletd due to design differences.
 func unsupported(interface{}, *wallet.Wallet) (interface{}, error) {
 	return nil, &chainjson.RPCError{
@@ -477,7 +477,7 @@ func getBlockCount(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 // information about the current state of walletd.
 // exist.
 func getInfo(icmd interface{}, w *wallet.Wallet, chainClient *chain.RPCClient) (interface{}, error) {
-	// Call down to flokicoind for all of the information in this command known
+	// Call down to lokid for all of the information in this command known
 	// by them.
 	info, err := chainClient.GetInfo()
 	if err != nil {
@@ -547,7 +547,7 @@ func getAccount(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 
 // getAccountAddress handles a getaccountaddress by returning the most
 // recently-created chained address that has not yet been used (does not yet
-// appear in the blockchain, or any tx that has arrived in the flokicoind mempool).
+// appear in the blockchain, or any tx that has arrived in the lokid mempool).
 // If the most recently-requested address has been used, a new address (the
 // next chained address in the keypool) is used.  This can fail if the keypool
 // runs out (and will return chainjson.ErrRPCWalletKeypoolRanOut if that happens).
@@ -969,17 +969,17 @@ func helpNoChainRPC(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 func help(icmd interface{}, _ *wallet.Wallet, chainClient *chain.RPCClient) (interface{}, error) {
 	cmd := icmd.(*chainjson.HelpCmd)
 
-	// flokicoind returns different help messages depending on the kind of
+	// lokid returns different help messages depending on the kind of
 	// connection the client is using.  Only methods available to HTTP POST
 	// clients are available to be used by wallet clients, even though
-	// wallet itself is a websocket client to flokicoind.  Therefore, create a
+	// wallet itself is a websocket client to lokid.  Therefore, create a
 	// POST client as needed.
 	//
 	// Returns nil if chainClient is currently nil or there is an error
 	// creating the client.
 	//
 	// This is hacky and is probably better handled by exposing help usage
-	// texts in a non-internal flokicoind package.
+	// texts in a non-internal lokid package.
 	postClient := func() *rpcclient.Client {
 		if chainClient == nil {
 			return nil
@@ -1536,7 +1536,7 @@ func sendToAddress(icmd interface{}, w *wallet.Wallet) (interface{}, error) {
 		cmd.Address: amt,
 	}
 
-	// sendtoaddress always spends from the default account, this matches flokicoind
+	// sendtoaddress always spends from the default account, this matches lokid
 	return sendPairs(w, pairs, waddrmgr.KeyScopeBIP0044, waddrmgr.DefaultAccountNum, 1,
 		txrules.DefaultRelayFeePerKb)
 }
@@ -1612,7 +1612,7 @@ func signRawTransaction(icmd interface{}, w *wallet.Wallet, chainClient *chain.R
 		return nil, InvalidParameterError{e}
 	}
 
-	// TODO: really we probably should look these up with flokicoind anyway to
+	// TODO: really we probably should look these up with lokid anyway to
 	// make sure that they match the blockchain if present.
 	inputs := make(map[wire.OutPoint][]byte)
 	scripts := make(map[string][]byte)
@@ -1657,7 +1657,7 @@ func signRawTransaction(icmd interface{}, w *wallet.Wallet, chainClient *chain.R
 	}
 
 	// Now we go and look for any inputs that we were not provided by
-	// querying flokicoind with getrawtransaction. We queue up a bunch of async
+	// querying lokid with getrawtransaction. We queue up a bunch of async
 	// requests and will wait for replies after we have checked the rest of
 	// the arguments.
 	requested := make(map[wire.OutPoint]rpcclient.FutureGetTxOutResult)

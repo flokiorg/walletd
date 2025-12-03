@@ -112,7 +112,7 @@ type walletServer struct {
 }
 
 // loaderServer provides RPC clients with the ability to load and close wallets,
-// as well as establishing a RPC connection to a flokicoind consensus server.
+// as well as establishing a RPC connection to a lokid consensus server.
 type loaderServer struct {
 	pb.UnimplementedWalletLoaderServiceServer
 	loader    *wallet.Loader
@@ -499,7 +499,7 @@ func (s *walletServer) SignTransaction(ctx context.Context, req *pb.SignTransact
 
 // BUGS:
 //   - The transaction is not inspected to be relevant before publishing using
-//     sendrawtransaction, so connection errors to flokicoind could result in the tx
+//     sendrawtransaction, so connection errors to lokid could result in the tx
 //     never being added to the wallet database.
 //   - Once the above bug is fixed, wallet will require a way to purge invalid
 //     transactions from the database when they are rejected by the network, other

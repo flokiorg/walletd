@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	defaultCAFilename       = "flokicoind.cert"
+	defaultCAFilename       = "lokid.cert"
 	defaultConfigFilename   = "walletd.conf"
 	defaultLogLevel         = "info"
 	defaultLogDirname       = "logs"
@@ -38,7 +38,7 @@ const (
 )
 
 var (
-	flokicoindDefaultCAFile = filepath.Join(chainutil.AppDataDir("flokicoind", false), "rpc.cert")
+	lokidDefaultCAFile = filepath.Join(chainutil.AppDataDir("lokid", false), "rpc.cert")
 	defaultAppDataDir       = chainutil.AppDataDir("walletd", false)
 	defaultConfigFile       = filepath.Join(defaultAppDataDir, defaultConfigFilename)
 	defaultRPCKeyFile       = filepath.Join(defaultAppDataDir, "rpc.key")
@@ -69,11 +69,11 @@ type config struct {
 	WalletPass string `long:"walletpass" default-mask:"-" description:"The public wallet password -- Only required if the wallet was created with one"`
 
 	// RPC client options
-	RPCConnect         string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of flokicoind RPC server to connect to"`
-	CAFile             *cfgutil.ExplicitString `long:"cafile" description:"File containing root certificates to authenticate a TLS connections with flokicoind"`
+	RPCConnect         string                  `short:"c" long:"rpcconnect" description:"Hostname/IP and port of lokid RPC server to connect to"`
+	CAFile             *cfgutil.ExplicitString `long:"cafile" description:"File containing root certificates to authenticate a TLS connections with lokid"`
 	DisableClientTLS   bool                    `long:"noclienttls" description:"Disable TLS for the RPC client -- NOTE: This is only allowed if the RPC client is connecting to localhost"`
-	FlokicoindUsername string                  `long:"flokicoindusername" description:"Username for flokicoind authentication"`
-	FlokicoindPassword string                  `long:"flokicoindpassword" default-mask:"-" description:"Password for flokicoind authentication"`
+	LokidUsername string                  `long:"lokidusername" description:"Username for lokid authentication"`
+	LokidPassword string                  `long:"lokidpassword" default-mask:"-" description:"Password for lokid authentication"`
 	Proxy              string                  `long:"proxy" description:"Connect via SOCKS5 proxy (eg. 127.0.0.1:9050)"`
 	ProxyUser          string                  `long:"proxyuser" description:"Username for proxy server"`
 	ProxyPass          string                  `long:"proxypass" default-mask:"-" description:"Password for proxy server"`
@@ -102,8 +102,8 @@ type config struct {
 
 	LegacyRPCMaxClients    int64  `long:"rpcmaxclients" description:"Max number of legacy RPC clients for standard connections"`
 	LegacyRPCMaxWebsockets int64  `long:"rpcmaxwebsockets" description:"Max number of legacy RPC websocket connections"`
-	Username               string `short:"u" long:"username" description:"Username for legacy RPC and flokicoind authentication (if flokicoindusername is unset)"`
-	Password               string `short:"P" long:"password" default-mask:"-" description:"Password for legacy RPC and flokicoind authentication (if flokicoindpassword is unset)"`
+	Username               string `short:"u" long:"username" description:"Username for legacy RPC and lokid authentication (if lokidusername is unset)"`
+	Password               string `short:"P" long:"password" default-mask:"-" description:"Password for legacy RPC and lokid authentication (if lokidpassword is unset)"`
 
 	// EXPERIMENTAL RPC server options
 	//
@@ -592,12 +592,12 @@ func loadConfig() (*config, []string, error) {
 			// 	return nil, nil, err
 			// }
 		} else {
-			// If CAFile is unset, choose either the copy or local flokicoind cert.
+			// If CAFile is unset, choose either the copy or local lokid cert.
 			if !cfg.CAFile.ExplicitlySet() {
 				cfg.CAFile.Value = filepath.Join(cfg.AppDataDir.Value, defaultCAFilename)
 
 				// If the CA copy does not exist, check if we're connecting to
-				// a local flokicoind and switch to its RPC cert if it exists.
+				// a local lokid and switch to its RPC cert if it exists.
 				certExists, err := cfgutil.FileExists(cfg.CAFile.Value)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
@@ -605,14 +605,14 @@ func loadConfig() (*config, []string, error) {
 				}
 				if !certExists {
 					if _, ok := localhostListeners[RPCHost]; ok {
-						flokicoindCertExists, err := cfgutil.FileExists(
-							flokicoindDefaultCAFile)
+						lokidCertExists, err := cfgutil.FileExists(
+							lokidDefaultCAFile)
 						if err != nil {
 							fmt.Fprintln(os.Stderr, err)
 							return nil, nil, err
 						}
-						if flokicoindCertExists {
-							cfg.CAFile.Value = flokicoindDefaultCAFile
+						if lokidCertExists {
+							cfg.CAFile.Value = lokidDefaultCAFile
 						}
 					}
 				}
@@ -704,15 +704,15 @@ func loadConfig() (*config, []string, error) {
 	cfg.RPCCert.Value = cleanAndExpandPath(cfg.RPCCert.Value)
 	cfg.RPCKey.Value = cleanAndExpandPath(cfg.RPCKey.Value)
 
-	// If the flokicoind username or password are unset, use the same auth as for
-	// the client.  The two settings were previously shared for flokicoind and
+	// If the lokid username or password are unset, use the same auth as for
+	// the client.  The two settings were previously shared for lokid and
 	// client auth, so this avoids breaking backwards compatibility while
-	// allowing users to use different auth settings for flokicoind and wallet.
-	if cfg.FlokicoindUsername == "" {
-		cfg.FlokicoindUsername = cfg.Username
+	// allowing users to use different auth settings for lokid and wallet.
+	if cfg.LokidUsername == "" {
+		cfg.LokidUsername = cfg.Username
 	}
-	if cfg.FlokicoindPassword == "" {
-		cfg.FlokicoindPassword = cfg.Password
+	if cfg.LokidPassword == "" {
+		cfg.LokidPassword = cfg.Password
 	}
 
 	// Warn about missing config file after the final command line parse

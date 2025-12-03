@@ -19,7 +19,7 @@ type Params struct {
 }
 
 // MainNetParams contains parameters specific running walletd and
-// flokicoind on the main network (wire.MainNet).
+// lokid on the main network (wire.MainNet).
 var MainNetParams = Params{
 	Params:        &chaincfg.MainNetParams,
 	RPCClientPort: "15216",
@@ -27,7 +27,7 @@ var MainNetParams = Params{
 }
 
 // Re contains parameters specific running walletd and
-// flokicoind on the test network (version 3) (wire.TestNet3).
+// lokid on the test network (version 3) (wire.TestNet3).
 var RegressionNetParams = Params{
 	Params:        &chaincfg.RegressionNetParams,
 	RPCClientPort: "25216",
@@ -35,7 +35,7 @@ var RegressionNetParams = Params{
 }
 
 // TestNet3Params contains parameters specific running walletd and
-// flokicoind on the test network (version 3) (wire.TestNet3).
+// lokid on the test network (version 3) (wire.TestNet3).
 var TestNet3Params = Params{
 	Params:        &chaincfg.TestNet3Params,
 	RPCClientPort: "35216",

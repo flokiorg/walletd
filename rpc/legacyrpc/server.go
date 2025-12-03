@@ -264,7 +264,7 @@ func (s *Server) SetChainServer(chainClient chain.Interface) {
 
 // handlerClosure creates a closure function for handling requests of the given
 // method.  This may be a request that is handled directly by walletd, or
-// a chain server request that is handled by passing the request down to flokicoind.
+// a chain server request that is handled by passing the request down to lokid.
 //
 // NOTE: These handlers do not handle special cases, such as the authenticate
 // method.  Each of these must be checked beforehand (the method is already

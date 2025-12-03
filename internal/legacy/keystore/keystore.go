@@ -2772,7 +2772,7 @@ type scriptAddress struct {
 }
 
 // ScriptAddress is an interface representing a Pay-to-Script-Hash style of
-// flokicoind address.
+// lokid address.
 type ScriptAddress interface {
 	WalletAddress
 	// Returns the script associated with the address.
