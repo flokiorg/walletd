@@ -4,8 +4,8 @@ go 1.23.4
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/flokiorg/flokicoin-neutrino v0.16.2-beta
-	github.com/flokiorg/go-flokicoin v0.25.7-beta
+	github.com/flokiorg/flokicoin-neutrino v0.16.3-beta
+	github.com/flokiorg/go-flokicoin v0.25.10-beta
 	github.com/gorilla/websocket v1.5.3
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jrick/logrotate v1.1.2
