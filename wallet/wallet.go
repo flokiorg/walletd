@@ -4185,6 +4185,25 @@ func (w *Wallet) DeriveFromKeyPath(scope waddrmgr.KeyScope,
 	return privKey, nil
 }
 
+// SyncedTo calls the `SyncedTo` method on the wallet's manager.
+func (w *Wallet) SyncedTo() waddrmgr.BlockStamp {
+	return w.Manager.SyncedTo()
+}
+
+// AddrManager returns the internal address manager.
+//
+// TODO(yy): Refactor it in lnd and remove the method.
+func (w *Wallet) AddrManager() *waddrmgr.Manager {
+	return w.Manager
+}
+
+// NotificationServer returns the internal NotificationServer.
+//
+// TODO(yy): Refactor it in lnd and remove the method.
+func (w *Wallet) NotificationServer() *NotificationServer {
+	return w.NtfnServer
+}
+
 // DeriveFromKeyPathAddAccount derives a private key using the given derivation
 // path. The account will be created if it doesn't exist.
 func (w *Wallet) DeriveFromKeyPathAddAccount(scope waddrmgr.KeyScope,
