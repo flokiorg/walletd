@@ -1,8 +1,9 @@
 module github.com/flokiorg/walletd
 
-go 1.23.4
+go 1.26.1
 
 require (
+	github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	github.com/davecgh/go-spew v1.1.1
 	github.com/flokiorg/flokicoin-neutrino v0.16.3-beta
 	github.com/flokiorg/go-flokicoin v0.25.10-beta
@@ -24,7 +25,6 @@ require (
 
 require (
 	github.com/aead/siphash v1.0.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/decred/dcrd/lru v1.1.3 // indirect
 	github.com/flokiorg/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
