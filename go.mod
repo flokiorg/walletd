@@ -4,9 +4,9 @@ go 1.26.1
 
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/flokiorg/flokicoin-neutrino v0.16.3-beta
-	github.com/flokiorg/go-flokicoin v0.25.10-beta
+	github.com/flokiorg/go-flokicoin v0.25.13-alpha
 	github.com/gorilla/websocket v1.5.3
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jrick/logrotate v1.1.2
@@ -14,13 +14,13 @@ require (
 	github.com/lightningnetwork/lnd/clock v1.1.1
 	github.com/lightningnetwork/lnd/ticker v1.1.1
 	github.com/lightningnetwork/lnd/tlv v1.3.1
-	github.com/stretchr/testify v1.10.0
-	go.etcd.io/bbolt v1.4.0
-	golang.org/x/net v0.37.0
-	golang.org/x/sync v0.12.0
-	golang.org/x/term v0.30.0
-	google.golang.org/grpc v1.71.0
-	google.golang.org/protobuf v1.36.5
+	github.com/stretchr/testify v1.11.1
+	go.etcd.io/bbolt v1.4.3
+	golang.org/x/net v0.47.0
+	golang.org/x/sync v0.18.0
+	golang.org/x/term v0.37.0
+	google.golang.org/grpc v1.76.0
+	google.golang.org/protobuf v1.36.7
 )
 
 require (
@@ -32,18 +32,18 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lightningnetwork/lnd/fn/v2 v2.0.8 // indirect
 	github.com/lightningnetwork/lnd/queue v1.1.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
-	golang.org/x/text v0.23.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250227231956-55c901821b1e // indirect
+	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 require (
 	github.com/btcsuite/btcd v0.24.3-0.20250318170759-4f4ea81776d6 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.1.0 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0
-	golang.org/x/crypto v0.36.0
-	golang.org/x/sys v0.31.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
+	golang.org/x/crypto v0.45.0
+	golang.org/x/sys v0.38.0 // indirect
 )

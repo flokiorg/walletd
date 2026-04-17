@@ -98,7 +98,7 @@ type config struct {
 	RPCKey             *cfgutil.ExplicitString `long:"rpckey" description:"File containing the certificate key"`
 	OneTimeTLSKey      bool                    `long:"onetimetlskey" description:"Generate a new TLS certpair at startup, but only write the certificate to disk"`
 	DisableServerTLS   bool                    `long:"noservertls" description:"Disable TLS for the RPC server -- NOTE: This is only allowed if the RPC server is bound to localhost"`
-	LegacyRPCListeners []string                `long:"rpclisten" description:"Listen for legacy RPC connections on this interface/port (default port: 8332, testnet: 18332, simnet: 18554, regtest: 18332)"`
+	LegacyRPCListeners []string                `long:"rpclisten" description:"Listen for legacy RPC connections on this interface/port (default port: 15213, testnet: 35213, simnet: 45213, regtest: 25213)"`
 
 	LegacyRPCMaxClients    int64  `long:"rpcmaxclients" description:"Max number of legacy RPC clients for standard connections"`
 	LegacyRPCMaxWebsockets int64  `long:"rpcmaxwebsockets" description:"Max number of legacy RPC websocket connections"`
