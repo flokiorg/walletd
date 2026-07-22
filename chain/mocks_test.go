@@ -2,6 +2,7 @@ package chain
 
 import (
 	"container/list"
+	"context"
 	"errors"
 
 	neutrino "github.com/flokiorg/flokicoin-neutrino"
@@ -69,7 +70,7 @@ func (m *mockRescanner) WaitForShutdown() {
 type mockChainService struct {
 }
 
-func (m *mockChainService) Start() error {
+func (m *mockChainService) Start(_ context.Context) error {
 	return nil
 }
 

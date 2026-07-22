@@ -96,12 +96,12 @@ func NewElectrumClient(network *chaincfg.Params, client *electrum.Client) Interf
 }
 
 // Start implements the chain.Interface Start method.
-func (c *ElectrumClient) Start() error {
+func (c *ElectrumClient) Start(ctx context.Context) error {
 	if !atomic.CompareAndSwapInt32(&c.started, 0, 1) {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), electrum.DefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, electrum.DefaultTimeout)
 	defer cancel()
 	if err := c.electrum.Ping(ctx); err != nil {
 		return fmt.Errorf("failed to ping: %v", err)

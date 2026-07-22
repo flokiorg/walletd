@@ -80,7 +80,7 @@ func (ws *WalletService) synchronize(watch bool) (bestBlock *waddrmgr.BlockStamp
 	}()
 
 	chainClient := chain.NewElectrumClient(ws.params.Network, client)
-	if err = chainClient.Start(); err != nil {
+	if err = chainClient.Start(ctx); err != nil {
 		return
 	}
 

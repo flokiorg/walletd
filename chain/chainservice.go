@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+
 	neutrino "github.com/flokiorg/flokicoin-neutrino"
 	"github.com/flokiorg/flokicoin-neutrino/banman"
 	"github.com/flokiorg/flokicoin-neutrino/headerfs"
@@ -14,7 +16,7 @@ import (
 // NeutrinoChainService is an interface that encapsulates all the public
 // methods of a *neutrino.ChainService
 type NeutrinoChainService interface {
-	Start() error
+	Start(ctx context.Context) error
 	GetBlock(chainhash.Hash, ...neutrino.QueryOption) (*chainutil.Block, error)
 	GetBlockHeight(*chainhash.Hash) (int32, error)
 	BestBlock() (*headerfs.BlockStamp, error)

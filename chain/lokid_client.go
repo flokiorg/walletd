@@ -2,6 +2,7 @@ package chain
 
 import (
 	"container/list"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -496,7 +497,7 @@ func (c *LokidClient) Rescan(blockHash *chainhash.Hash,
 // and ZMQ notifications.
 //
 // NOTE: This is part of the chain.Interface interface.
-func (c *LokidClient) Start() error {
+func (c *LokidClient) Start(_ context.Context) error {
 	if !atomic.CompareAndSwapInt32(&c.started, 0, 1) {
 		return nil
 	}
