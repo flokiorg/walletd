@@ -16,6 +16,7 @@ import (
 	"github.com/flokiorg/go-flokicoin/wire"
 	"github.com/flokiorg/walletd/waddrmgr"
 	"github.com/flokiorg/walletd/walletdb"
+	"github.com/flokiorg/walletd/wtxmgr"
 )
 
 var (
@@ -32,8 +33,10 @@ type OutputSelectionPolicy struct {
 	RequiredConfirmations int32
 }
 
-func (p *OutputSelectionPolicy) meetsRequiredConfs(txHeight, curHeight int32) bool {
-	return confirmed(p.RequiredConfirmations, txHeight, curHeight)
+func (p *OutputSelectionPolicy) meetsRequiredConfs(txHeight,
+	curHeight int32) bool {
+
+	return hasMinConfs(p.RequiredConfirmations, txHeight, curHeight)
 }
 
 // UnspentOutputs fetches all unspent outputs from the wallet that match rules
@@ -177,6 +180,12 @@ func (w *Wallet) FetchOutpointInfo(prevOut *wire.OutPoint) (*wire.MsgTx,
 			numOutputs)
 	}
 
+	// Exit early if the output doesn't belong to our wallet. We know it's
+	// our UTXO iff the `TxDetails` has a credit record on this output.
+	if !hasOutput(txDetail, prevOut.Index) {
+		return nil, nil, 0, ErrNotMine
+	}
+
 	pkScript := txDetail.TxRecord.MsgTx.TxOut[prevOut.Index].PkScript
 
 	// Determine the number of confirmations the output currently has.
@@ -226,4 +235,20 @@ func (w *Wallet) FetchDerivationInfo(pkScript []byte) (*psbt.Bip32Derivation,
 	}
 
 	return derivation, nil
+}
+
+// hasOutpoint takes an output identified by its output index and determines
+// whether the TxDetails contains this output. If the TxDetails doesn't have
+// this output, it means this output doesn't belong to our wallet.
+//
+// TODO(yy): implement this method on `TxDetails` and update the package
+// `wtxmgr` instead.
+func hasOutput(t *wtxmgr.TxDetails, outputIndex uint32) bool {
+	for _, cred := range t.Credits {
+		if outputIndex == cred.Index {
+			return true
+		}
+	}
+
+	return false
 }
