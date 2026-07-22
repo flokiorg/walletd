@@ -22,6 +22,7 @@ import (
 	"github.com/flokiorg/walletd/wallet/txsizes"
 	"github.com/flokiorg/walletd/walletdb"
 	"github.com/flokiorg/walletd/wtxmgr"
+	"github.com/lightningnetwork/lnd/fn/v2"
 )
 
 func makeInputSource(eligible []Coin) txauthor.InputSource {
@@ -193,6 +194,12 @@ func (w *Wallet) txToOutputs(outputs []*wire.TxOut,
 
 		var inputSource txauthor.InputSource
 		if len(selectedUtxos) > 0 {
+			dedupUtxos := fn.NewSet(selectedUtxos...)
+			if len(dedupUtxos) != len(selectedUtxos) {
+				return errors.New("selected UTXOs contain " +
+					"duplicate values")
+			}
+
 			eligibleByOutpoint := make(
 				map[wire.OutPoint]wtxmgr.Credit,
 			)
@@ -392,6 +399,12 @@ func (w *Wallet) txFee(outputs []*wire.TxOut,
 
 		var inputSource txauthor.InputSource
 		if len(selectedUtxos) > 0 {
+			dedupUtxos := fn.NewSet(selectedUtxos...)
+			if len(dedupUtxos) != len(selectedUtxos) {
+				return errors.New("selected UTXOs contain " +
+					"duplicate values")
+			}
+
 			eligibleByOutpoint := make(
 				map[wire.OutPoint]wtxmgr.Credit,
 			)
@@ -489,12 +502,12 @@ func (w *Wallet) findEligibleOutputs(dbtx walletdb.ReadTx,
 		// Only include this output if it meets the required number of
 		// confirmations. Coinbase transactions must have reached
 		// maturity before their outputs may be spent.
-		if !confirmed(minconf, output.Height, bs.Height) {
+		if !hasMinConfs(minconf, output.Height, bs.Height) {
 			continue
 		}
 		if output.FromCoinBase {
 			target := int32(w.chainParams.CoinbaseMaturity)
-			if !confirmed(target, output.Height, bs.Height) {
+			if !hasMinConfs(target, output.Height, bs.Height) {
 				continue
 			}
 		}
