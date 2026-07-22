@@ -6,3 +6,6 @@ coverage.txt
 .vscode
 .gocache
 .com
+
+# Agent skill workspace (sync reports, scratch state)
+.agents
