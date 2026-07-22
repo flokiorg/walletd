@@ -243,8 +243,8 @@ func (b *daemonZMQEvents) LookupInputSpend(
 func (b *daemonZMQEvents) blockEventHandler() {
 	defer b.wg.Done()
 
-	log.Info("Started listening for lokid block notifications via ZMQ "+
-		"on", b.blockConn.RemoteAddr())
+	log.Infof("Started listening for lokid block notifications via ZMQ "+
+		"on %s", b.blockConn.RemoteAddr())
 
 	// Set up the buffers we expect our messages to consume. ZMQ
 	// messages from lokid include three parts: the command, the
@@ -340,8 +340,8 @@ func (b *daemonZMQEvents) blockEventHandler() {
 func (b *daemonZMQEvents) txEventHandler() {
 	defer b.wg.Done()
 
-	log.Info("Started listening for lokid transaction notifications "+
-		"via ZMQ on", b.txConn.RemoteAddr())
+	log.Infof("Started listening for lokid transaction notifications "+
+		"via ZMQ on %s", b.txConn.RemoteAddr())
 
 	// Set up the buffers we expect our messages to consume. ZMQ
 	// messages from lokid include three parts: the command, the
