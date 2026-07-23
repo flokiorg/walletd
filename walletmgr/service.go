@@ -294,7 +294,8 @@ func (ws *WalletService) RelayFee() (float32, error) {
 		return 0, electrum.ErrServerShutdown
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 	return ws.electrumClient.GetRelayFee(ctx)
 }
 
@@ -307,7 +308,8 @@ func (ws *WalletService) EstimateFee(target uint32) (float32, error) {
 		return 0, electrum.ErrServerShutdown
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 	return ws.electrumClient.GetFee(ctx, target)
 }
 
