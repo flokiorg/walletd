@@ -252,7 +252,7 @@ func (c *LokidConn) Stop() {
 	c.client.Shutdown()
 
 	if err := c.events.Stop(); err != nil {
-		log.Errorf("error shutting down lokid events: %w", err)
+		log.Errorf("error shutting down lokid events: %v", err)
 	}
 
 	if c.prunedBlockDispatcher != nil {

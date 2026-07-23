@@ -470,7 +470,7 @@ func (m *mempool) UpdateMempoolTxes() []*wire.MsgTx {
 	// Fetch the raw transactions in batch.
 	txesToNotify, err := m.batchGetRawTxes(newTxids, true)
 	if err != nil {
-		log.Error("Batch getrawtransaction got %v", err)
+		log.Errorf("Batch getrawtransaction got %v", err)
 
 	}
 
