@@ -1,6 +1,6 @@
 module github.com/flokiorg/walletd
 
-go 1.26.1
+go 1.26.5
 
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
