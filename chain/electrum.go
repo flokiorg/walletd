@@ -537,8 +537,9 @@ func (c *ElectrumClient) pingPongHandler() {
 		case <-c.quit:
 			return
 		case <-time.After(2 * time.Second): // 10secs
-			ctx, _ := context.WithTimeout(context.Background(), time.Second*5)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			err := c.electrum.Ping(ctx)
+			cancel()
 			if err != nil {
 				c.health <- err
 			} else {

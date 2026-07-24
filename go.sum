@@ -17,8 +17,8 @@ github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 h1:NMZiJj8QnKe1LgsbDayM4UoHwbvw
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0/go.mod h1:ZXNYxsqcloTdSy/rNShjYzMhyjf0LaoftYK0p+A3h40=
 github.com/decred/dcrd/lru v1.1.3 h1:w9EAbvGLyzm6jTjF83UKuqZEiUtJmvRhQDOCEIvSuE0=
 github.com/decred/dcrd/lru v1.1.3/go.mod h1:Tw0i0pJyiLEx/oZdHLe1Wdv/Y7EGzAX+sYftnmxBR4o=
-github.com/flokiorg/flokicoin-neutrino v0.16.3-beta h1:HL4icwmr/WmnLAPJ640wgwiPWeLu4TF8CNP+H8IG/Rc=
-github.com/flokiorg/flokicoin-neutrino v0.16.3-beta/go.mod h1:8R3q3y13+MB72iaF2FVwxRNgdiYmmFvgfXGXW/IQZfc=
+github.com/flokiorg/flokicoin-neutrino v0.17.0-beta h1:hHmdO6o/hRUwNUY9P8ins37bx3fHd0IQHFZ1hyDlPMk=
+github.com/flokiorg/flokicoin-neutrino v0.17.0-beta/go.mod h1:Ht9rA5UKxIXwq/MHulVcwI1hDANe04+G6ES2oThAauk=
 github.com/flokiorg/go-flokicoin v0.25.13-alpha h1:hYVnna7xMJS2QByN6QeZLsJlubLvzltodBSjyrY1TJ4=
 github.com/flokiorg/go-flokicoin v0.25.13-alpha/go.mod h1:cw04Z0zP+Zy8XzgXq4YWQJsTOUFEWWx8pOobJiodcCg=
 github.com/flokiorg/go-socks v0.0.0-20170105172521-4720035b7bfd h1:+ronJTVUGaH8N/VRXwZLi5Sou7Ty41piC05oKHNehdc=
@@ -110,3 +110,5 @@ gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntN
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+pgregory.net/rapid v1.2.0 h1:keKAYRcjm+e1F0oAuU5F5+YPAWcyxNNRK2wud503Gnk=
+pgregory.net/rapid v1.2.0/go.mod h1:PY5XlDGj0+V1FCq0o192FdRhpKHGTRIWBgqjDBTrq04=
