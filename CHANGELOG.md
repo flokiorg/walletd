@@ -11,7 +11,25 @@
 
 ### Changed
 
-- Built with Go 1.26.5. (#3)
+- Built with Go 1.26.8, up from 1.26.5. That closes four reachable stdlib
+  vulnerabilities reported by govulncheck -- GO-2026-6218 (net/url),
+  GO-2026-6090 (crypto/tls), GO-2026-5972 (encoding/asn1) and GO-2026-5026
+  (net/http) -- all fixed in 1.26.6. (#3)
+- Updated `go-flokicoin` to
+  [v0.26.2](https://github.com/flokiorg/go-flokicoin/releases/tag/v0.26.2) from
+  v0.25.13-alpha, and `flokicoin-neutrino` to
+  [v0.17.2](https://github.com/flokiorg/flokicoin-neutrino/releases/tag/v0.17.2)
+  from v0.17.0-beta.
+- Updated `google.golang.org/grpc` from v1.79.3 to v1.84.0, closing
+  GO-2026-6348 and GO-2026-6061.
+
+### Known issue
+
+- `GO-2026-6443`, a server panic in `google.golang.org/grpc` reachable from
+  `startRPCServers` via missing `:authority` or `Host` headers, is **not fixed
+  in any stable grpc release** -- upstream's fix currently exists only in a
+  v1.85.0 development build. Pinning a pre-release dependency into a release is
+  the worse trade, so this is accepted and monitored rather than forced.
 
 ## [0.2.1-beta]
 
