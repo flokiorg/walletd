@@ -9,3 +9,9 @@ coverage.txt
 
 # Agent skill workspace (sync reports, scratch state)
 .agents
+
+# Local agent/tooling directories, not part of the project.
+.claude/
+
+# GoReleaser build output.
+dist/
