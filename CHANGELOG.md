@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.3]
+
+### Fixed
+
+- **GO-2026-6443**, a remotely triggerable server panic in
+  `google.golang.org/grpc` (missing `:authority`/`Host` header), was reachable
+  here. grpc is pinned to **v1.83.2**, which the advisory does not cover.
+
+  Earlier notes in this org described this finding as unfixable, because the
+  only fix the advisory lists is an unreleased v1.85.0 development build. That
+  was wrong: the affected ranges are `[0, 1.82.2)`, `[1.83.0, 1.83.2)` and
+  `[1.84.0-dev, 1.85.0-dev...)`, so **v1.83.2 is not affected**. 0.2.2 required
+  v1.84.0, which is.
+
+  `govulncheck ./...` now reports no reachable vulnerabilities at all.
+
 ## [0.2.2]
 
 ### Fixed
