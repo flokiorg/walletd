@@ -5,8 +5,8 @@ go 1.26.8
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/flokiorg/flokicoin-neutrino v0.17.2
-	github.com/flokiorg/go-flokicoin v0.26.3
+	github.com/flokiorg/flokicoin-neutrino v0.17.3-rc.1
+	github.com/flokiorg/go-flokicoin v0.26.4-rc.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jrick/logrotate v1.1.2

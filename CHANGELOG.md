@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4-rc.1]
+
+### Changed
+
+- Updates `go-flokicoin` to v0.26.4-rc.1 and `flokicoin-neutrino` to
+  v0.17.3-rc.1, taking the latest Flokicoin libraries. (#9)
+
 ## [0.2.3]
 
 ### Fixed
